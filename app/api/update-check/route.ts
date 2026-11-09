@@ -4,7 +4,7 @@
  * everything it needs to show the "Update available" bar + changelog modal.
  *
  * No self-install — the banner just links to the release page. The running
- * version is `NEXT_PUBLIC_APP_VERSION`, baked from `src-tauri/tauri.conf.json`
+ * version is `NEXT_PUBLIC_APP_VERSION`, baked from `package.json`
  * by `scripts/desktop/build-server.mjs` / `dev.mjs`.
  */
 import { NextResponse } from "next/server";

@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/next-desktop/
 /out/
 
 # production
@@ -51,17 +52,10 @@ next-env.d.ts
 /public/generated/**
 !/public/generated/.gitkeep
 
-# Tauri desktop build artifacts
-/src-tauri/target/
-/src-tauri/loader/target/
-/src-tauri/gen/
-/src-tauri/server/
-/src-tauri/binaries/
-# Mobile icon sets Tauri regenerates on build — desktop-only project
-/src-tauri/icons/android/
-/src-tauri/icons/ios/
-/src-tauri/icons/Square*Logo.png
-/src-tauri/icons/StoreLogo.png
+# MyGo desktop build artifacts
+/.mygo/
+/desktop/resources/server/
+/desktop/mygo.ts
 # Signing / notarization secrets
 /scripts/desktop/sign.env
-/src-tauri/.node-cache/
+/desktop/.node-cache/

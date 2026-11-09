@@ -1,0 +1,21 @@
+{
+  "name": "HeliosGen",
+  "slug": "heliosgen",
+  "identifier": "cash.sdd.helios.desktop",
+  "version": "1.2.1",
+  "main": "./desktop",
+  "devUrl": "http://127.0.0.1:3000",
+  "devCommand": "node scripts/desktop/dev.mjs",
+  "buildCommand": "node scripts/desktop/build-server.mjs",
+  "bindings": "desktop/mygo.ts",
+  "out": "build",
+  "icon": "desktop/resources/icon.png",
+  "resources": ["desktop/resources/server"],
+  "macos": {
+    "category": "public.app-category.graphics-design",
+    "minimumSystemVersion": "12.0",
+    "helperEntitlements": {
+      "server/node-bin/node": "desktop/entitlements.plist"
+    }
+  }
+}

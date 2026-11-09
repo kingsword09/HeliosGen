@@ -1,9 +1,7 @@
-// Stages a self-contained Next.js server + a Node runtime for the Tauri bundle.
+// Stages a self-contained Next.js server + a Node runtime for the MyGo bundle.
 //
 //   node scripts/desktop/build-server.mjs          # full production build + stage
-//   node scripts/desktop/build-server.mjs --dev     # just build the sidecar shim
-//
-// Invoked automatically by `tauri build` / `tauri dev` via the before* commands.
+// Invoked by MyGo through mygo.json buildCommand.
 
 import { execFileSync } from "node:child_process";
 import {
@@ -21,40 +19,17 @@ import { join, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const SRC_TAURI = join(ROOT, "src-tauri");
-const STAGE = join(SRC_TAURI, "server");
-const BIN_DIR = join(SRC_TAURI, "binaries");
+const DESKTOP = join(ROOT, "desktop");
+const STAGE = join(DESKTOP, "resources", "server");
+const NEXT_OUTPUT = join(ROOT, "next-desktop");
 
 const EXE = process.platform === "win32" ? ".exe" : "";
 
 // Baked into the client bundle so the in-app update check
 // (`app/api/update-check`) knows what version is running.
 const APP_VERSION = JSON.parse(
-  readFileSync(join(SRC_TAURI, "tauri.conf.json"), "utf8"),
+  readFileSync(join(ROOT, "package.json"), "utf8"),
 ).version;
-
-/**
- * Build the sidecar shim (src-tauri/loader) and stage it as the Tauri
- * `externalBin`. Fast (no tauri deps) and needed even for `tauri dev` — the
- * Tauri build script hard-fails if the externalBin file is missing.
- */
-function stageShim(triple) {
-  const manifest = join(SRC_TAURI, "loader", "Cargo.toml");
-  console.log("[desktop] building sidecar shim (helios-node)…");
-  run("cargo", ["build", "--release", "--manifest-path", manifest]);
-  const src = join(SRC_TAURI, "loader", "target", "release", `helios-node${EXE}`);
-  const dest = join(BIN_DIR, `helios-node-${triple}${EXE}`);
-  mkdirSync(BIN_DIR, { recursive: true });
-  copyFileSync(src, dest);
-  if (process.platform !== "win32") chmodSync(dest, 0o755);
-  return dest;
-}
-
-if (process.argv.includes("--dev")) {
-  console.log("[desktop] dev mode — run `next dev` yourself (pnpm desktop:dev does both)");
-  stageShim(targetTriple());
-  process.exit(0);
-}
 
 const nodeMajor = Number(process.version.slice(1).split(".")[0]);
 if (nodeMajor < 22) {
@@ -72,51 +47,32 @@ function run(cmd, args, env = {}, cwd = ROOT) {
   });
 }
 
-/** Rust target triple used to name the sidecar binary (Tauri convention). */
-function targetTriple() {
-  try {
-    const out = execFileSync("rustc", ["-Vv"], { encoding: "utf8" });
-    const m = out.match(/host:\s*(\S+)/);
-    if (m) return m[1];
-  } catch {
-    /* rustc not on PATH — fall back to a platform guess */
-  }
-  const map = {
-    "darwin-arm64": "aarch64-apple-darwin",
-    "darwin-x64": "x86_64-apple-darwin",
-    "linux-x64": "x86_64-unknown-linux-gnu",
-    "linux-arm64": "aarch64-unknown-linux-gnu",
-    "win32-x64": "x86_64-pc-windows-msvc",
-  };
-  const key = `${process.platform}-${process.arch}`;
-  if (!map[key]) throw new Error(`unsupported platform for desktop build: ${key}`);
-  return map[key];
-}
-
 // Clear last run's staging *before* the build — otherwise the file tracer sweeps
-// the previous ~900 MB server tree into .next/standalone/src-tauri and each build
-// compounds. (next.config.ts also excludes src-tauri from tracing.)
+// the previous server tree into next-desktop/standalone/desktop/resources and each build
+// compounds. (next.config.ts also excludes desktop/resources from tracing.)
 rmSync(STAGE, { recursive: true, force: true });
-rmSync(BIN_DIR, { recursive: true, force: true });
-rmSync(join(ROOT, ".next", "standalone"), { recursive: true, force: true });
+rmSync(NEXT_OUTPUT, { recursive: true, force: true });
 
 console.log("[desktop] next build (standalone)…");
 run("node", [join(ROOT, "node_modules", "next", "dist", "bin", "next"), "build"], {
   DESKTOP_BUILD: "1",
   // Baked into the client bundle — NEXT_PUBLIC_* vars can't be set at runtime
-  // by the Tauri shell.
+  // by the MyGo shell.
   NEXT_PUBLIC_APP_VERSION: APP_VERSION,
 });
 
-const STANDALONE = join(ROOT, ".next", "standalone");
+const STANDALONE = join(NEXT_OUTPUT, "standalone");
 if (!existsSync(join(STANDALONE, "server.js"))) {
-  throw new Error(".next/standalone/server.js missing — is `output: \"standalone\"` active?");
+  throw new Error("next-desktop/standalone/server.js missing — is `output: \"standalone\"` active?");
 }
 
 console.log("[desktop] staging server →", STAGE);
 cpSync(STANDALONE, STAGE, { recursive: true });
-rmSync(join(STAGE, "src-tauri"), { recursive: true, force: true }); // never nest ourselves
-cpSync(join(ROOT, ".next", "static"), join(STAGE, ".next", "static"), { recursive: true });
+rmSync(join(STAGE, "desktop"), { recursive: true, force: true });
+rmSync(join(STAGE, "build"), { recursive: true, force: true });
+rmSync(join(STAGE, ".next"), { recursive: true, force: true });
+cpSync(join(NEXT_OUTPUT, "server"), join(STAGE, "next-desktop", "server"), { recursive: true });
+cpSync(join(NEXT_OUTPUT, "static"), join(STAGE, "next-desktop", "static"), { recursive: true });
 copyFileSync(join(ROOT, "scripts", "desktop", "sidecar-guard.js"), join(STAGE, "sidecar-guard.js"));
 if (existsSync(join(ROOT, "public"))) {
   cpSync(join(ROOT, "public"), join(STAGE, "public"), {
@@ -161,6 +117,21 @@ for (const probe of ["next/package.json", "@next/env/package.json", "react/packa
     throw new Error(`staged install is missing ${probe}`);
   }
 }
+const aliasesDir = join(NEXT_OUTPUT, "node_modules");
+if (existsSync(aliasesDir)) {
+  const aliases = readdirSync(aliasesDir).filter((name) => !name.startsWith(".")).flatMap((name) =>
+    name.startsWith("@") ? readdirSync(join(aliasesDir, name)).map((child) => `${name}/${child}`) : [name],
+  );
+  for (const alias of aliases) {
+    const original = JSON.parse(readFileSync(join(aliasesDir, alias, "package.json"), "utf8"));
+    if (alias === original.name) continue;
+    const installed = join(STAGE, "node_modules", ...original.name.split("/"));
+    const installedPackage = JSON.parse(readFileSync(join(installed, "package.json"), "utf8"));
+    if (installedPackage.version !== original.version) throw new Error(`External package version mismatch for ${alias}.`);
+    cpSync(installed, join(STAGE, "next-desktop", "node_modules", ...alias.split("/")), { recursive: true });
+  }
+}
+run("node", ["-e", "require('./next-desktop/server/app/api/health/route.js'); require('./next-desktop/server/app/api/settings/provider/models/route.js')"], {}, STAGE);
 
 // Prune what a prebuilt standalone server never loads at runtime:
 //  - @next/swc-* : the SWC compiler, build-time only (~95 MB)
@@ -177,19 +148,13 @@ for (const [dir, keepIf] of [
   }
 }
 
-const triple = targetTriple();
 
-// The Node runtime ships as a *resource* (Contents/Resources/server/node-bin/),
-// not as the Tauri sidecar. A binary launched out of a bundle's Contents/MacOS/
-// gets its own macOS Dock tile (tauri-apps/tauri#14014); the sidecar is instead
-// the shim, which hides itself from the Dock and then exec's this node.
 const nodeDest = join(STAGE, "node-bin", `node${EXE}`);
 mkdirSync(dirname(nodeDest), { recursive: true });
 console.log(`[desktop] bundling node runtime → ${nodeDest}`);
 copyFileSync(portableNodeBinary(), nodeDest);
 if (process.platform !== "win32") chmodSync(nodeDest, 0o755);
 
-stageShim(triple);
 
 /**
  * `process.execPath` is only safe to bundle if it's a self-contained binary.
@@ -213,7 +178,7 @@ function portableNodeBinary() {
   const ver = process.version; // e.g. v22.23.2
   const arch = process.arch === "x64" ? "x64" : process.arch; // arm64 stays arm64
   const name = `node-${ver}-darwin-${arch}`;
-  const cacheDir = join(SRC_TAURI, ".node-cache");
+  const cacheDir = join(DESKTOP, ".node-cache");
   const cached = join(cacheDir, name, "bin", "node");
   if (!existsSync(cached)) {
     mkdirSync(cacheDir, { recursive: true });
@@ -224,13 +189,9 @@ function portableNodeBinary() {
   return cached;
 }
 
-// Tauri signs the app shell + the sidecar shim but not Mach-O buried in
-// resources — the Node runtime itself and sharp's .node / .dylib. Sign those
-// now, inside-out, so notarization passes. Node runs V8 (JIT), so it needs the
-// same entitlements as the shim. Skipped unless APPLE_SIGNING_IDENTITY is set.
 if (process.platform === "darwin" && process.env.APPLE_SIGNING_IDENTITY) {
   const identity = process.env.APPLE_SIGNING_IDENTITY;
-  const ents = join(SRC_TAURI, "entitlements.plist");
+  const ents = join(DESKTOP, "entitlements.plist");
   const macho = execFileSync(
     "sh",
     ["-c", `find '${STAGE}/node_modules' -type f \\( -name '*.node' -o -name '*.dylib' -o -name '*.so' \\)`],

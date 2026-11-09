@@ -1,7 +1,7 @@
 name: version-check
 
 # Guards against issue #12: a release tag whose bundle version was never bumped
-# in src-tauri/tauri.conf.json. On PRs it only checks that the version files
+# in mygo.json. On PRs it only checks that the version files
 # agree; on a vX.Y.Z / X.Y.Z tag it also checks the tag matches.
 
 on:
@@ -11,9 +11,7 @@ on:
   pull_request:
     paths:
       - "package.json"
-      - "src-tauri/tauri.conf.json"
-      - "src-tauri/Cargo.toml"
-      - "src-tauri/Cargo.lock"
+      - "mygo.json"
       - "scripts/desktop/check-version.mjs"
       - ".github/workflows/version-check.yml"
 

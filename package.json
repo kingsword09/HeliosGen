@@ -8,11 +8,10 @@
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "eslint",
-    "desktop:dev": "node scripts/desktop/dev.mjs",
+    "desktop:dev": "go run github.com/egoist/mygo/cmd/mygo dev",
     "desktop:check-version": "node scripts/desktop/check-version.mjs",
-    "desktop:build": "node scripts/desktop/check-version.mjs && CI=true tauri build",
-    "desktop:icon": "tauri icon",
-    "tauri": "tauri"
+    "desktop:build": "node scripts/desktop/check-version.mjs && go run github.com/egoist/mygo/cmd/mygo build",
+    "desktop:doctor": "go run github.com/egoist/mygo/cmd/mygo doctor"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -33,7 +32,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@tauri-apps/cli": "^2",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

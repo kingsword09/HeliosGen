@@ -6,7 +6,7 @@
 //   node scripts/desktop/check-version.mjs v1.2.0     # leading "v" is tolerated
 //
 // In CI the tag is read from $GITHUB_REF_NAME when no argument is passed, so a
-// `git push --tags` that forgets to bump `tauri.conf.json` fails the build
+// `git push --tags` that forgets to bump `mygo.json` fails the build
 // instead of shipping a bundle stamped with the wrong CFBundleShortVersionString
 // (see issue #12).
 
@@ -16,25 +16,15 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-// tauri.conf.json is the source of truth — Tauri bakes its `version` into the
-// macOS Info.plist, the Windows installer, and NEXT_PUBLIC_APP_VERSION.
+// package.json and mygo.json must agree for packaged releases.
 const SOURCES = [
   {
-    file: "src-tauri/tauri.conf.json",
+    file: "mygo.json",
     read: (t) => JSON.parse(t).version,
   },
   {
     file: "package.json",
     read: (t) => JSON.parse(t).version,
-  },
-  {
-    file: "src-tauri/Cargo.toml",
-    read: (t) => t.match(/^\s*\[package\][\s\S]*?^\s*version\s*=\s*"([^"]+)"/m)?.[1],
-  },
-  {
-    file: "src-tauri/Cargo.lock",
-    read: (t) =>
-      t.match(/name = "heliosgen-desktop"\nversion = "([^"]+)"/)?.[1],
   },
 ];
 
@@ -72,7 +62,7 @@ if (tag && /^\d+\.\d+\.\d+/.test(tag)) {
   if (tag !== canonical) {
     console.error(
       `✗ release tag ${rawTag} does not match version ${canonical} — bump ` +
-        `src-tauri/tauri.conf.json (and package.json / Cargo.toml / Cargo.lock)`,
+        `mygo.json and package.json`,
     );
     ok = false;
   } else {

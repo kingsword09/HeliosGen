@@ -9,11 +9,13 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    "next-desktop/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
     // Desktop build staging area (contains a copied Next.js server tree).
-    "src-tauri/**",
+    "desktop/resources/**",
+    ".mygo/**",
   ]),
 ]);
 

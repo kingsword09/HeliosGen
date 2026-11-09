@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * "Update available" bar, styled like {@link KieBanner} but amber.
+ * "Update available" bar, styled like {@link ProviderBanner} but amber.
  * Polls `/api/update-check` (GitHub latest release vs the bundled version);
  * tapping the bar opens a modal with the release notes and a Download link.
  * No self-install — Download just opens the release page in the OS browser
@@ -281,7 +281,7 @@ function ChangelogModal({ info, onClose }: { info: UpdateInfo; onClose: () => vo
           </button>
           {/* No target="_blank": DesktopLinkHandler intercepts the click and
               hands the URL to the OS browser via /api/open-external. A _blank
-              would also trigger Tauri's own (unpermitted) shell.open. */}
+              avoids opening the link inside the system webview. */}
           <a
             href={info.url}
             onClick={onClose}
