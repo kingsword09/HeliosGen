@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // PROVIDERS — single source of truth for per-model backend selection
-// (Kie.ai / Azure Foundry / Codex CLI), shared by the Settings modal, the
+// (Custom Provider / Azure Foundry / Codex CLI), shared by the Settings modal, the
 // workflow GenerateNode, and the gallery generation composer.
 // ─────────────────────────────────────────────────────────────────────────────
 import { IMAGE_MODELS } from "@/lib/modelConfig";
 
 export const PROVIDERS = [
-  { id: "kie",   label: "Kie.ai" },
+  { id: "custom",   label: "Custom Provider" },
   { id: "azure", label: "Azure Foundry" },
   { id: "codex", label: "Codex CLI" },
 ] as const;
@@ -18,7 +18,13 @@ const STORAGE_KEY = "aiui-model-providers";
 export function loadModelProviders(): Record<string, ProviderId> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const normalized = Object.fromEntries(Object.entries(parsed).map(([model, provider]) => [
+      model, PROVIDERS.some((entry) => entry.id === provider) ? provider : "custom",
+    ])) as Record<string, ProviderId>;
+    if (JSON.stringify(parsed) !== JSON.stringify(normalized)) localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
   } catch {
     return {};
   }
@@ -32,7 +38,7 @@ export function saveModelProviders(map: Record<string, ProviderId>) {
 }
 
 export function getModelProvider(modelId: string): ProviderId {
-  return loadModelProviders()[modelId] ?? "kie";
+  return loadModelProviders()[modelId] ?? "custom";
 }
 
 /** Persists the backend for a single model, leaving the others untouched. */

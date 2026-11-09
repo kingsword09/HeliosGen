@@ -4,7 +4,7 @@ import { useReactFlow, Node, Edge } from "@xyflow/react";
 import { useWorkflowStore, NodeData } from "@/lib/store";
 import { edgeStyle, EDGE_COLORS } from "@/lib/edgeStyles";
 import { NODES, NODE_SIZE, FALLBACK_SIZE, NODE_META, getLastNodeSettings, getDefaultNodeSize } from "@/lib/nodeTypes";
-import { VIDEO_MODELS, IMAGE_MODELS } from "@/lib/modelConfig";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 
 // Extract the aspect ratio as a float from any source node type
 function nodeAspectRatioFloat(data: Record<string, unknown> | undefined): number | null {
@@ -136,6 +136,7 @@ function targetHandleFor(
 }
 
 export default function NodePickerMenu({ dropState, onClose }: Props) {
+  const { IMAGE_MODELS, VIDEO_MODELS } = useModelCatalog();
   const { screenToFlowPosition, flowToScreenPosition, getInternalNode } = useReactFlow();
   const addNode    = useWorkflowStore((s) => s.addNode);
   const insertEdge = useWorkflowStore((s) => s.insertEdge);

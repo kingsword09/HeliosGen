@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 import { edgeStyle } from "./edgeStyles";
-import { VIDEO_MODELS } from "./modelConfig";
+import { getModelCatalog } from "./useModelCatalog";
 import { requestWorkflowSync } from "./workflowSyncBus";
 import {
   Node,
@@ -153,9 +153,9 @@ interface WorkflowStore {
   addToast:    (message: string, type?: Toast["type"], href?: string, title?: string, preview?: string) => void;
   removeToast: (id: string) => void;
 
-  // ── Kie key status (null = unknown, true = set, false = not set)
-  kieKeySet:    boolean | null;
-  setKieKeySet: (v: boolean | null) => void;
+  // ── Custom provider status (null = unknown, true = set, false = not set)
+  providerReady:    boolean | null;
+  setProviderReady: (v: boolean | null) => void;
 
   // ── Azure key status (null = unknown, true = set, false = not set)
   azureKeySet:    boolean | null;
@@ -415,7 +415,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
             if (connection.targetHandle === "startFrame") {
               const targetNode = s.nodes.find((n) => n.id === connection.target);
               const videoModelId = (targetNode?.data?.videoModel as string | undefined) ?? "";
-              const videoModelCfg = VIDEO_MODELS.find((m) => m.id === videoModelId);
+              const videoModelCfg = getModelCatalog().VIDEO_MODELS.find((m) => m.id === videoModelId);
               if (videoModelCfg?.apiInput.useMotionControl) colorKey = "character";
             }
             const edges = addEdge(
@@ -695,8 +695,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
         removeToast: (id) =>
           set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
-        kieKeySet:    null,
-        setKieKeySet: (v) => set({ kieKeySet: v }),
+        providerReady:    null,
+        setProviderReady: (v) => set({ providerReady: v }),
 
         azureKeySet:    null,
         setAzureKeySet: (v) => set({ azureKeySet: v }),

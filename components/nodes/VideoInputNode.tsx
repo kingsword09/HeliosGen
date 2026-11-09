@@ -4,7 +4,7 @@ import NextImage from "next/image";
 import { Handle, Position, NodeProps, Node, useReactFlow, useUpdateNodeInternals } from "@xyflow/react";
 import CornerResizer from "./CornerResizer";
 import { useWorkflowStore, NodeData } from "@/lib/store";
-import { VIDEO_MODELS } from "@/lib/modelConfig";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 import { sha256Hex } from "@/lib/assetHash";
 
 type VideoInputNodeType = Node<NodeData, "videoInputNode">;
@@ -31,6 +31,7 @@ const VIDEO_SOURCE_HANDLE_SPACING = 32; // px between source handles
 const videoSourceHandleCenterOffset = (i: number) => (i - (VIDEO_SOURCE_HANDLES.length - 1) / 2) * VIDEO_SOURCE_HANDLE_SPACING;
 
 export default function VideoInputNode({ id, data, selected }: NodeProps<VideoInputNodeType>) {
+  const { VIDEO_MODELS } = useModelCatalog();
   const updateNodeData  = useWorkflowStore((s) => s.updateNodeData);
   const edges           = useWorkflowStore((s) => s.edges);
   const nodes           = useWorkflowStore((s) => s.nodes);
@@ -457,7 +458,7 @@ export default function VideoInputNode({ id, data, selected }: NodeProps<VideoIn
       if (cap !== undefined && (strictest === undefined || cap < strictest)) strictest = cap;
     }
     return strictest;
-  }, [id, edges, nodes]);
+  }, [id, edges, nodes, VIDEO_MODELS]);
 
   const openFramePreview = useCallback(() => {
     videoRef.current?.pause();

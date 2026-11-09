@@ -206,35 +206,19 @@ export function storeAssetHash(hash: string, cdnUrl: string, mimeType: string, b
 
 // ── Settings ───────────────────────────────────────────────────────────────
 
-function getSetting(key: string): string | null {
+export function getSetting(key: string): string | null {
   const r = db().prepare("SELECT value FROM settings WHERE key = ?").get(key) as
     | { value: string }
     | undefined;
   return r?.value ?? null;
 }
-function setSetting(key: string, value: string): void {
+export function setSetting(key: string, value: string): void {
   db()
     .prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
     .run(key, value);
 }
-function deleteSetting(key: string): void {
+export function deleteSetting(key: string): void {
   db().prepare("DELETE FROM settings WHERE key = ?").run(key);
-}
-
-export function getKieApiToken(): string | null {
-  const dbToken = getSetting("kie_api_token");
-  if (dbToken) return dbToken;
-  const envToken = process.env.KIE_API_KEY ?? "";
-  if (!envToken || envToken === "your_kie_api_key_here") return null;
-  return envToken;
-}
-
-export function setKieApiToken(token: string): void {
-  setSetting("kie_api_token", token);
-}
-
-export function deleteKieApiToken(): void {
-  deleteSetting("kie_api_token");
 }
 
 export function getAzureApiKey(): string | null {

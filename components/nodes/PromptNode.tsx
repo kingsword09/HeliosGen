@@ -6,7 +6,7 @@ import {
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeProps, Node, useViewport } from "@xyflow/react";
 import { useWorkflowStore, NodeData } from "@/lib/store";
-import { IMAGE_MODELS, VIDEO_MODELS } from "@/lib/modelConfig";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 import { thumbSrc } from "@/lib/galleryUtils";
 import { useReadOnly } from "@/lib/readOnlyContext";
 import { detectTextMode } from "@/lib/textFormat";
@@ -86,6 +86,7 @@ function renderWithMentions(
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PromptNode({ id, data, selected }: NodeProps<PromptNodeType>) {
+  const { IMAGE_MODELS, VIDEO_MODELS } = useModelCatalog();
   const readOnly = useReadOnly();
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData);
   const onNodesChange = useWorkflowStore((s) => s.onNodesChange);
@@ -234,7 +235,7 @@ export default function PromptNode({ id, data, selected }: NodeProps<PromptNodeT
         const vMode = (target.data?.veoMode as string) ?? "frames";
         if (vMode === "frames" && e.targetHandle === "resource") return false;
         if (vMode === "references" && (e.targetHandle === "startFrame" || e.targetHandle === "endFrame")) return false;
-        // Also Veo doesn't use video/audio handles in the current KIE integration
+        // Also Veo doesn't use video/audio handles in the current provider integration
         if (e.targetHandle === "videoRef" || e.targetHandle === "referenceVideo" || e.targetHandle === "audioRef") return false;
       }
     }

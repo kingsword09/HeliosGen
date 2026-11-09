@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState, Fragment } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useAnimatedPopup } from "@/lib/useAnimatedPopup";
 import { createPortal } from "react-dom";
 import GenerateButton from "@/components/nodes/GenerateButton";
@@ -15,26 +15,11 @@ import { browserNotify, requestNotificationPermission } from "@/lib/browserNotif
 type GenerateNodeType = Node<NodeData, "generateNode">;
 
 import { ShieldBan } from "lucide-react";
-import { IMAGE_MODELS, AZURE_POPULAR_SIZES, validateAzureCustomSize } from "@/lib/modelConfig";
+import { AZURE_POPULAR_SIZES, validateAzureCustomSize } from "@/lib/modelConfig";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 import { PROVIDERS, ProviderId, getModelProvider, setModelProvider, modelHasProviderChoice } from "@/lib/providers";
 import { useGeneratingBorderAnimation } from "@/lib/useGeneratingBorderAnimation";
 import MissingInputWarning from "./MissingInputWarning";
-
-// Derived from config — no hardcoding needed
-const MODELS = IMAGE_MODELS.map((m) => ({ id: m.id, name: m.name, meta: m.provider }));
-const MODEL_CAPS = Object.fromEntries(
-  IMAGE_MODELS.map((m) => [m.id, {
-    supportsImages: m.supportsImages,
-    supportsQuality: m.supportsQuality,
-    ratios: m.ratios,
-    maxImages: m.maxImages,
-    qualityOptions: m.apiInput.qualityOptions,
-    qualityKey: m.apiInput.qualityKey,
-    azureQualityOptions: m.azureQualityOptions,
-    azureResolutionOptions: m.azureResolutionOptions,
-  }])
-);
-const DEFAULT_CAPS = MODEL_CAPS["nano-banana-2"];
 
 // ── Aspect ratios ─────────────────────────────────────────────────────────────
 
@@ -163,6 +148,17 @@ function resolveMentions(
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function GenerateNode({ id, data, selected }: NodeProps<GenerateNodeType>) {
+  const { IMAGE_MODELS } = useModelCatalog();
+  const { MODELS, MODEL_CAPS } = useMemo(() => ({
+    MODELS: IMAGE_MODELS.map((model) => ({ id: model.id, name: model.name, meta: model.provider })),
+    MODEL_CAPS: Object.fromEntries(IMAGE_MODELS.map((model) => [model.id, {
+      supportsImages: model.supportsImages, supportsQuality: model.supportsQuality,
+      ratios: model.ratios, maxImages: model.maxImages, qualityOptions: model.apiInput.qualityOptions,
+      qualityKey: model.apiInput.qualityKey, azureQualityOptions: model.azureQualityOptions,
+      azureResolutionOptions: model.azureResolutionOptions,
+    }])),
+  }), [IMAGE_MODELS]);
+  const DEFAULT_CAPS = MODEL_CAPS["custom-image"];
   const readOnly = useReadOnly();
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData);
   const updateNodeSize = useWorkflowStore((s) => s.updateNodeSize);
@@ -172,7 +168,7 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
   const addNode = useWorkflowStore((s) => s.addNode);
   const insertEdge = useWorkflowStore((s) => s.insertEdge);
   const addToast   = useWorkflowStore((s) => s.addToast);
-  const kieKeySet  = useWorkflowStore((s) => s.kieKeySet);
+  const providerReady  = useWorkflowStore((s) => s.providerReady);
   const nodes = useWorkflowStore((s) => s.nodes);
   const edges = useWorkflowStore((s) => s.edges);
   const debugMode = useWorkflowStore((s) => s.debugMode);
@@ -372,13 +368,15 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
     });
   }, [id, updateNodeData]);
 
-  const model = (data.model as string) ?? "nano-banana-2";
+  const selectedModel = (data.model as string) ?? "custom-image";
+  const model = MODELS.some((entry) => entry.id === selectedModel) ? selectedModel : MODELS[0].id;
   const caps = MODEL_CAPS[model] ?? DEFAULT_CAPS;
   const modelInfo = MODELS.find((m) => m.id === model) ?? MODELS[0];
-  const quality = (data.quality as string) ?? "1k";
+  const selectedQuality = (data.quality as string) ?? IMAGE_MODELS.find((entry) => entry.id === model)?.defaultQuality ?? "1k";
+  const quality = caps.qualityOptions?.length && !caps.qualityOptions.includes(selectedQuality) ? caps.qualityOptions[0] : selectedQuality;
   const status = data.status ?? "idle";
 
-  const [currentProvider, setCurrentProvider] = useState<ProviderId>("kie");
+  const [currentProvider, setCurrentProvider] = useState<ProviderId>("custom");
   useEffect(() => {
     const read = () => setCurrentProvider(getModelProvider(model));
     read();
@@ -636,14 +634,14 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
       catch { return ""; }
     })();
     const isAzure = !!(azureBaseUrl && azureDeployment && (() => {
-      try { return (JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[model] ?? "kie") === "azure"; }
+      try { return (JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[model] ?? "custom") === "azure"; }
       catch { return false; }
     })());
     const azureQuality = (data.azureQuality as string | undefined) ?? "auto";
     const azureResolution = (data.azureResolution as string | undefined) ?? "1k";
 
     const isCodex = !!(() => {
-      try { return (JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[model] ?? "kie") === "codex"; }
+      try { return (JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[model] ?? "custom") === "codex"; }
       catch { return false; }
     })();
 
@@ -709,7 +707,7 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
         const json = await res.json();
         if (!res.ok) throw new Error(json.error);
 
-        // Both Kie and Azure now return { taskId } — polling useEffect handles the rest
+        // Both Custom Provider and Azure now return { taskId } — polling useEffect handles the rest
         updateNodeData(id, { taskId: json.taskId });
       } catch (e: unknown) {
         const errMsg = e instanceof Error ? e.message : String(e);
@@ -722,7 +720,7 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
         setLoading(false);
       }
     }, 3000);
-  }, [id, nodes, edges, model, aspectRatio, quality, data.azureQuality, data.azureCustomWidth, data.azureCustomHeight, debugMode, connectedPromptNodeId, updateNodeData, flashEdgeError, kieKeySet, addToast]);
+  }, [id, nodes, edges, model, aspectRatio, quality, data.azureQuality, data.azureCustomWidth, data.azureCustomHeight, debugMode, connectedPromptNodeId, updateNodeData, flashEdgeError, providerReady, addToast]);
 
   const handleGenerateBatch = useCallback(() => {
     generate();
@@ -1136,7 +1134,7 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
               >
                 <span className="flex items-center gap-1.5 text-[11px] text-white/70">
                   <ProviderBrandIcon id={currentProvider} />
-                  {PROVIDERS.find((p) => p.id === currentProvider)?.label ?? "Kie.ai"}
+                  {PROVIDERS.find((p) => p.id === currentProvider)?.label ?? "Custom Provider"}
                 </span>
                 <ChevronIcon open={providerOpen} />
               </button>
@@ -1159,7 +1157,7 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
           )}
 
           {/* Ratio pill */}
-          <div className="relative shrink-0">
+          {(caps.ratios.some((ratio) => ratio !== "auto") || allowAzureCustomSize) && <div className="relative shrink-0">
             <button
               onMouseDown={(e) => e.stopPropagation()}
               onClick={() => { setRatioOpen((o) => !o); setModelOpen(false); setQualityOpen(false); }}
@@ -1275,7 +1273,7 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
                 )}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Quality pill */}
           {caps.supportsQuality && !(caps.azureQualityOptions && isAzureProvider) && (
@@ -1297,11 +1295,9 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
                       <span className="text-[9px] text-[#4A4A45] tracking-wider uppercase font-semibold">Resolution</span>
                     </div>
                   )}
-                  {[
-                    { id: "1k", label: "1K", meta: "Standard" },
-                    { id: "2k", label: "2K", meta: "High" },
-                    { id: "4k", label: "4K", meta: "Maximum" },
-                  ].filter((q) => !caps.qualityOptions || caps.qualityOptions.includes(q.id as "1k" | "2k" | "4k")).map((q) => (
+                  {(caps.qualityOptions ?? ["1k", "2k", "4k"]).map((value) => ({
+                    id: value, label: value.toUpperCase(), meta: ({ "1k": "Standard", "2k": "High", "4k": "Maximum" } as Record<string, string>)[value] ?? "",
+                  })).map((q) => (
                     <button
                       key={q.id}
                       onMouseDown={(e) => e.stopPropagation()}
@@ -1432,7 +1428,7 @@ export default function GenerateNode({ id, data, selected }: NodeProps<GenerateN
           )}
 
           {/* Generate button — always right */}
-          {!readOnly && <GenerateButton onClick={handleGenerateBatch} busy={animBusy} disabled={promptOverLimit || (!isCodexProvider && kieKeySet === false) || busy || hasFailedImageInput} warningMessages={hasFailedImageInput ? ["The connected image input has no valid content"] : undefined} />}
+          {!readOnly && <GenerateButton onClick={handleGenerateBatch} busy={animBusy} disabled={promptOverLimit || (!isCodexProvider && !isAzureProvider && providerReady === false) || busy || hasFailedImageInput} warningMessages={hasFailedImageInput ? ["The connected image input has no valid content"] : undefined} />}
         </div>
       </div>
 
@@ -1552,9 +1548,9 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-/** Backend brand mark for the Provider pill (kie/azure/codex) — distinct from NodeProviderIcon's model-brand icons. */
+/** Backend brand mark for the Provider pill (custom/azure/codex) — distinct from NodeProviderIcon's model-brand icons. */
 function ProviderBrandIcon({ id }: { id: ProviderId }) {
-  if (id === "kie") {
+  if (id === "custom") {
     return (
       <span className="text-[#2DD4BF] shrink-0" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "11px", height: "11px", fontSize: "10px", fontWeight: 700 }}>
         K
@@ -1598,4 +1594,3 @@ function NodeProviderIcon({ provider }: { provider: string }) {
       return null;
   }
 }
-

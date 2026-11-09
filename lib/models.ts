@@ -10,6 +10,7 @@ export interface ModelGroup {
 }
 
 export const MODEL_GROUPS: ModelGroup[] = [
+  { label: "Custom Provider", models: [{ id: "custom-text", label: "Custom Text Model", desc: "Configured in Settings" }] },
   {
     label: "Anthropic",
     models: [

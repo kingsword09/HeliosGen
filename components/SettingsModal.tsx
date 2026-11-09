@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { IMAGE_MODELS, VIDEO_MODELS } from "@/lib/modelConfig";
-import { MODEL_GROUPS } from "@/lib/models";
+import { IMAGE_MODELS as BUILTIN_IMAGE_MODELS } from "@/lib/modelConfig";
+import CustomProviderPanel from "@/components/CustomProviderPanel";
 import { useWorkflowStore } from "@/lib/store";
 import { PROVIDERS, ProviderId, loadModelProviders, saveModelProviders, getModelProvider } from "@/lib/providers";
 
@@ -100,7 +100,7 @@ type NavId = "api-keys" | "image-models" | "video-models" | "text-models" | "deb
 const NAV_BASE: { id: NavId; label: string; icon: React.ReactNode }[] = [
   {
     id: "api-keys",
-    label: "API Keys",
+    label: "服务商",
     icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="8" cy="15" r="4" />
@@ -112,7 +112,7 @@ const NAV_BASE: { id: NavId; label: string; icon: React.ReactNode }[] = [
   },
   {
     id: "image-models",
-    label: "Image Models",
+    label: "图片模型",
     icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -123,7 +123,7 @@ const NAV_BASE: { id: NavId; label: string; icon: React.ReactNode }[] = [
   },
   {
     id: "video-models",
-    label: "Video Models",
+    label: "视频模型",
     icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="m22 8-6 4 6 4V8z" />
@@ -133,7 +133,7 @@ const NAV_BASE: { id: NavId; label: string; icon: React.ReactNode }[] = [
   },
   {
     id: "text-models",
-    label: "Text Models",
+    label: "对话模型",
     icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -162,10 +162,10 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-/* ─── Provider brand icons (kie/azure/codex backend pills) ───────────────────── */
+/* ─── Provider brand icons (custom/azure/codex backend pills) ───────────────────── */
 
 function ProviderBrandIcon({ id, size = 12 }: { id: ProviderId; size?: number }) {
-  if (id === "kie") {
+  if (id === "custom") {
     return (
       <span className="text-[#2DD4BF] shrink-0" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: `${size}px`, height: `${size}px`, fontSize: `${Math.round(size * 0.83)}px`, fontWeight: 700 }}>
         K
@@ -347,12 +347,12 @@ function ModelGroup({
               name={m.name}
               providerLabel={m.provider}
               category={m.category}
-              value={providers[m.id] ?? "kie"}
+              value={providers[m.id] ?? "custom"}
               onChange={(v) => onProviderChange(m.id, v)}
               azureSupported={!!m.hasAzureDeployment}
             />
             {/* Deployment name — shown only for Azure-capable models when Azure is selected */}
-            {m.hasAzureDeployment && (providers[m.id] ?? "kie") === "azure" && (
+            {m.hasAzureDeployment && (providers[m.id] ?? "custom") === "azure" && (
               <div
                 style={{
                   display: "flex",
@@ -419,9 +419,11 @@ const INPUT_STYLE: React.CSSProperties = {
 function ApiKeysPanel({
   azureBaseUrl,
   onBaseUrlChange,
-  kieKeyStatus,
-  onKieKeySave,
-  onKieKeyDelete,
+  onProviderReadyChange,
+  onOpenModels,
+  selectedProviderId,
+  onProviderSelect,
+  onDirtyChange,
   azureKeyStatus,
   onAzureKeySave,
   onAzureKeyDelete,
@@ -430,18 +432,17 @@ function ApiKeysPanel({
 }: {
   azureBaseUrl: string;
   onBaseUrlChange: (v: string) => void;
-  kieKeyStatus: "unknown" | "set" | "unset";
-  onKieKeySave: (token: string) => Promise<void>;
-  onKieKeyDelete: () => Promise<void>;
+  onProviderReadyChange: (ready: boolean) => void;
+  onOpenModels: (kind: "image" | "text" | "video") => void;
+  selectedProviderId: string | null;
+  onProviderSelect: (id: string) => void;
+  onDirtyChange: (dirty: boolean) => void;
   azureKeyStatus: "unknown" | "set" | "unset";
   onAzureKeySave: (key: string) => Promise<void>;
   onAzureKeyDelete: () => Promise<void>;
   codexStatus: CodexStatus;
   onCodexLoginSuccess: () => void;
 }) {
-  const [kieInput, setKieInput]       = useState("");
-  const [kieSaving, setKieSaving]     = useState(false);
-  const [kieError, setKieError]       = useState<string | null>(null);
   const [azureInput, setAzureInput]   = useState("");
   const [azureSaving, setAzureSaving] = useState(false);
   const [azureError, setAzureError]   = useState<string | null>(null);
@@ -506,20 +507,6 @@ function ApiKeysPanel({
     return () => clearInterval(interval);
   }, [loginFlow.status, onCodexLoginSuccess]);
 
-  const handleKieSave = async () => {
-    if (!kieInput.trim()) return;
-    setKieSaving(true);
-    setKieError(null);
-    try {
-      await onKieKeySave(kieInput.trim());
-      setKieInput("");
-    } catch (e: unknown) {
-      setKieError(e instanceof Error ? e.message : "Failed to save");
-    } finally {
-      setKieSaving(false);
-    }
-  };
-
   const handleAzureSave = async () => {
     if (!azureInput.trim()) return;
     setAzureSaving(true);
@@ -539,128 +526,15 @@ function ApiKeysPanel({
       {/* Header */}
       <div>
         <h2 style={{ fontSize: "17px", fontWeight: 600, color: "rgba(255,255,255,0.9)", margin: 0, lineHeight: 1.2 }}>
-          API Keys
+          服务商
         </h2>
         <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.28)", marginTop: "6px", lineHeight: 1.5 }}>
-          Your Kie.ai key is stored securely on the server — it is never exposed to the browser.
+          先保存连接信息，再到图片、视频或对话页面添加需要的模型。无需把所有类型都配置一遍。
         </p>
       </div>
 
-      {/* ──── Kie.ai API key ──────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          padding: "16px",
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: "12px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span
-            style={{
-              width: "28px", height: "28px", borderRadius: "7px",
-              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            <ProviderBrandIcon id="kie" size={16} />
-          </span>
-          <div>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>Kie.ai</div>
-            <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.28)", marginTop: "1px" }}>
-              Used for all image &amp; video generation
-            </div>
-          </div>
-          {kieKeyStatus === "set" && (
-            <span
-              style={{
-                marginLeft: "auto", fontSize: "10px", fontWeight: 600,
-                color: "rgba(74,222,128,0.8)", background: "rgba(74,222,128,0.08)",
-                border: "1px solid rgba(74,222,128,0.2)", borderRadius: "5px",
-                padding: "2px 7px", letterSpacing: "0.04em",
-              }}
-            >
-              SAVED
-            </span>
-          )}
-        </div>
-
-        {kieKeyStatus === "unknown" ? (
-          <div style={{ display: "flex", gap: "8px" }}>
-            <div style={{
-              flex: 1, height: "31px", borderRadius: "7px",
-              background: "rgba(255,255,255,0.05)",
-              animation: "skeleton-pulse 1.4s ease-in-out infinite",
-            }} />
-            <div style={{
-              width: "72px", height: "31px", borderRadius: "7px",
-              background: "rgba(255,255,255,0.05)",
-              animation: "skeleton-pulse 1.4s ease-in-out infinite 0.2s",
-            }} />
-          </div>
-        ) : kieKeyStatus === "set" ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <input
-              type="password"
-              value="placeholdertoken"
-              readOnly
-              style={{ ...INPUT_STYLE, flex: 1, cursor: "default", color: "rgba(255,255,255,0.3)" }}
-            />
-            <button
-              onClick={onKieKeyDelete}
-              style={{
-                padding: "7px 12px", borderRadius: "7px", border: "1px solid rgba(239,68,68,0.3)",
-                background: "rgba(239,68,68,0.06)", color: "rgba(239,68,68,0.7)",
-                cursor: "pointer", fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap",
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                type="password"
-                placeholder="Paste your Kie.ai API token"
-                value={kieInput}
-                onChange={(e) => setKieInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleKieSave(); }}
-                style={{ ...INPUT_STYLE, flex: 1 }}
-                onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = "rgba(255,255,255,0.2)"; }}
-                onBlur={(e)  => { (e.target as HTMLInputElement).style.borderColor = "rgba(255,255,255,0.08)"; }}
-              />
-              <button
-                onClick={handleKieSave}
-                disabled={!kieInput.trim() || kieSaving}
-                style={{
-                  padding: "7px 14px", borderRadius: "7px", border: "none",
-                  background: kieInput.trim() ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)",
-                  color: kieInput.trim() ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.25)",
-                  cursor: kieInput.trim() ? "pointer" : "default",
-                  fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap",
-                  transition: "background 140ms ease, color 140ms ease",
-                }}
-              >
-                {kieSaving ? "Saving…" : "Save"}
-              </button>
-            </div>
-            {kieError && (
-              <p style={{ fontSize: "11px", color: "rgba(239,68,68,0.7)", margin: 0 }}>{kieError}</p>
-            )}
-            <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", margin: 0, lineHeight: 1.5 }}>
-              Get your token at{" "}
-              <a href="https://kie.ai/api-key" target="_blank" rel="noreferrer" style={{ color: "rgba(255,255,255,0.4)" }}>
-                kie.ai/api-key
-              </a>
-            </p>
-          </div>
-        )}
-      </div>
-
+      <CustomProviderPanel onReadyChange={onProviderReadyChange} onOpenModels={onOpenModels} providerId={selectedProviderId} onProviderSelect={onProviderSelect} onDirtyChange={onDirtyChange} />
+      <details className="provider-settings text-card-foreground"><summary className="cursor-pointer text-sm">Azure / 本地 Codex（可选）</summary><div className="mt-4 flex flex-col gap-6">
       {/* ──── Azure Foundry API key + endpoint ────────────────────────── */}
       <div
         style={{
@@ -944,7 +818,7 @@ function ApiKeysPanel({
           </div>
         )}
       </div>
-
+      </div></details>
     </div>
   );
 }
@@ -973,13 +847,20 @@ function ImageModelsPanel({
   onProviderChange,
   azureDeployments,
   onDeploymentChange,
+  selectedProviderId,
+  onProviderSelect,
+  onDirtyChange,
 }: {
   providers: Record<string, ProviderId>;
   onProviderChange: (modelId: string, v: ProviderId) => void;
   azureDeployments: Record<string, string>;
   onDeploymentChange: (modelId: string, v: string) => void;
+  selectedProviderId: string | null;
+  onProviderSelect: (id: string) => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
-  const models = IMAGE_MODELS.map((m) => ({
+  const IMAGE_MODELS = BUILTIN_IMAGE_MODELS;
+  const models = IMAGE_MODELS.filter((model) => !!model.azureSizeMap).map((m) => ({
     id: m.id,
     name: m.name,
     provider: m.provider,
@@ -991,12 +872,14 @@ function ImageModelsPanel({
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       <div>
         <h2 style={{ fontSize: "17px", fontWeight: 600, color: "rgba(255,255,255,0.9)", margin: 0, lineHeight: 1.2 }}>
-          Image Models
+          图片模型
         </h2>
         <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.28)", marginTop: "6px", lineHeight: 1.5 }}>
-          Choose which provider serves each image model. Azure-capable models show a deployment name field when Azure is selected.
+          在这里添加图片模型，并按实际支持情况开启画质、尺寸或参考图片。
         </p>
       </div>
+      <CustomProviderPanel modelKind="image" providerId={selectedProviderId} onProviderSelect={onProviderSelect} onDirtyChange={onDirtyChange} />
+      <details className="provider-settings text-card-foreground"><summary className="cursor-pointer text-sm">内置模型与其他后端（可选）</summary>
       <ProviderLegend />
       <ModelGroup
         title="Image Models"
@@ -1007,51 +890,26 @@ function ImageModelsPanel({
         azureDeployments={azureDeployments}
         onDeploymentChange={onDeploymentChange}
       />
+      </details>
     </div>
   );
 }
 
 /* ─── Video Models panel ─────────────────────────────────────────────────────── */
 
-function VideoModelsPanel({
-  providers,
-  onProviderChange,
-  azureDeployments,
-  onDeploymentChange,
-}: {
-  providers: Record<string, ProviderId>;
-  onProviderChange: (modelId: string, v: ProviderId) => void;
-  azureDeployments: Record<string, string>;
-  onDeploymentChange: (modelId: string, v: string) => void;
-}) {
-  const models = VIDEO_MODELS.map((m) => ({
-    id: m.id,
-    name: m.name,
-    provider: m.provider,
-    category: "Video",
-    hasAzureDeployment: false,
-  }));
+function VideoModelsPanel({ selectedProviderId, onProviderSelect, onDirtyChange }: { selectedProviderId: string | null; onProviderSelect: (id: string) => void; onDirtyChange: (dirty: boolean) => void }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       <div>
         <h2 style={{ fontSize: "17px", fontWeight: 600, color: "rgba(255,255,255,0.9)", margin: 0, lineHeight: 1.2 }}>
-          Video Models
+          视频模型
         </h2>
         <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.28)", marginTop: "6px", lineHeight: 1.5 }}>
-          Choose which provider serves each video model.
+          只添加要用的视频模型；时长、分辨率、声音和参考媒体均按模型支持情况配置。
         </p>
       </div>
-      <ProviderLegend />
-      <ModelGroup
-        title="Video Models"
-        accent="#5EEAD4"
-        models={models}
-        providers={providers}
-        onProviderChange={onProviderChange}
-        azureDeployments={azureDeployments}
-        onDeploymentChange={onDeploymentChange}
-      />
+      <CustomProviderPanel modelKind="video" providerId={selectedProviderId} onProviderSelect={onProviderSelect} onDirtyChange={onDirtyChange} />
     </div>
   );
 }
@@ -1065,6 +923,9 @@ function TextModelsPanel({
   azureTextModelName,
   onDeploymentChange,
   onModelNameChange,
+  selectedProviderId,
+  onProviderSelect,
+  onDirtyChange,
 }: {
   azureKeyStatus: "unknown" | "set" | "unset";
   azureBaseUrl: string;
@@ -1072,68 +933,26 @@ function TextModelsPanel({
   azureTextModelName: string;
   onDeploymentChange: (v: string) => void;
   onModelNameChange: (v: string) => void;
+  selectedProviderId: string | null;
+  onProviderSelect: (id: string) => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const azureReady = azureKeyStatus === "set" && !!azureBaseUrl.trim();
-  const kieGroups = MODEL_GROUPS.filter(g => g.label !== "Azure");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       {/* Header */}
       <div>
         <h2 style={{ fontSize: "17px", fontWeight: 600, color: "rgba(255,255,255,0.9)", margin: 0, lineHeight: 1.2 }}>
-          Text Models
+          对话模型
         </h2>
         <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.28)", marginTop: "6px", lineHeight: 1.5 }}>
-          Configure AI text models for chat. Azure Auto uses your Azure Foundry credentials from the API Keys tab.
+          添加对话模型即可使用，回复长度等参数仅在需要时配置。
         </p>
       </div>
 
-      {/* Kie.ai models */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-        {kieGroups.map((group) => (
-          <div key={group.label}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-              <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#e5e5e5", flexShrink: 0 }} />
-              <span style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
-                {group.label}
-              </span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {group.models.map((m) => (
-                <div
-                  key={m.id}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "14px",
-                    padding: "11px 16px", borderRadius: "10px",
-                    background: "rgba(255,255,255,0.02)",
-                    border: "1px solid rgba(255,255,255,0.05)",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.85)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {m.label}
-                    </div>
-                    <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.28)", marginTop: "2px" }}>
-                      Kie.ai · {m.desc}
-                    </div>
-                  </div>
-                  <span style={{
-                    display: "flex", alignItems: "center", gap: "5px",
-                    padding: "3px 8px", borderRadius: "6px",
-                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-                    fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.4)",
-                    whiteSpace: "nowrap",
-                  }}>
-                    <span style={{ fontWeight: 700, color: "rgba(255,255,255,0.55)" }}>K</span>
-                    Kie.ai
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
+      <CustomProviderPanel modelKind="text" providerId={selectedProviderId} onProviderSelect={onProviderSelect} onDirtyChange={onDirtyChange} />
+      <details className="provider-settings text-card-foreground"><summary className="cursor-pointer text-sm">Azure 对话模型（可选）</summary>
       {/* Azure Auto card */}
       <div
         style={{
@@ -1273,6 +1092,7 @@ function TextModelsPanel({
           </div>
         </div>
       </div>
+      </details>
     </div>
   );
 }
@@ -1335,15 +1155,26 @@ function DebugPanel() {
 
 export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [activeNav, setActiveNav]             = useState<NavId>("api-keys");
+  const [selectedProviderIds, setSelectedProviderIds] = useState<Partial<Record<NavId, string>>>({});
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const selectedProviderId = selectedProviderIds[activeNav] ?? null;
+  const selectProvider = useCallback((id: string) => setSelectedProviderIds((previous) => ({ ...previous, [activeNav]: id })), [activeNav]);
+  const closeSettings = useCallback(() => {
+    if (!unsavedChanges || window.confirm("当前配置尚未保存，确定关闭设置并放弃更改吗？")) onClose();
+  }, [onClose, unsavedChanges]);
+  function changeNav(next: NavId) {
+    if (next === activeNav) return;
+    if (unsavedChanges && !window.confirm("当前配置尚未保存，确定切换页面并放弃更改吗？")) return;
+    setUnsavedChanges(false); setActiveNav(next);
+  }
   const [modelProviders, setModelProviders]   = useState<Record<string, ProviderId>>({});
   const [azureDeployments, setAzureDeployments] = useState<Record<string, string>>({});
   const [azureBaseUrl, setAzureBaseUrl]               = useState("");
   const [azureTextDeployment, setAzureTextDeployment] = useState("auto-model");
   const [azureTextModelName, setAzureTextModelName]   = useState("model-router");
-  const [kieKeyStatus, setKieKeyStatus]               = useState<"unknown" | "set" | "unset">("unknown");
   const [azureKeyStatus, setAzureKeyStatus]   = useState<"unknown" | "set" | "unset">("unknown");
   const [codexStatus, setCodexStatus]         = useState<CodexStatus>({ kind: "unknown" });
-  const setKieKeySet    = useWorkflowStore((s) => s.setKieKeySet);
+  const setProviderReady    = useWorkflowStore((s) => s.setProviderReady);
   const setAzureKeySet  = useWorkflowStore((s) => s.setAzureKeySet);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -1367,13 +1198,6 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     setAzureBaseUrl(loadAzureBaseUrl());
     setAzureTextDeployment(loadAzureTextDeployment());
     setAzureTextModelName(loadAzureTextModelName());
-    // Check if Kie key is saved on the server
-    authHeader().then((h) =>
-      fetch("/api/settings/kie-key", { headers: h })
-        .then((r) => r.json())
-        .then((d) => setKieKeyStatus(d.hasToken ? "set" : "unset"))
-        .catch(() => setKieKeyStatus("unset"))
-    );
     // Check if Azure key is saved on the server
     authHeader().then((h) =>
       fetch("/api/settings/azure-key", { headers: h })
@@ -1387,14 +1211,20 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
   /* Close on Escape */
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") closeSettings(); };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, [closeSettings]);
+  useEffect(() => {
+    if (!unsavedChanges) return;
+    const handler = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [unsavedChanges]);
 
   /* Close on backdrop click */
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === overlayRef.current) onClose();
+    if (e.target === overlayRef.current) closeSettings();
   };
 
   const handleProviderChange = (modelId: string, v: ProviderId) => {
@@ -1414,25 +1244,6 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const handleBaseUrlChange = (v: string) => {
     setAzureBaseUrl(v);
     saveAzureBaseUrl(v);
-  };
-
-  const handleKieKeySave = async (token: string) => {
-    const h = await authHeader();
-    const res = await fetch("/api/settings/kie-key", {
-      method: "POST",
-      headers: { ...h, "Content-Type": "application/json" },
-      body: JSON.stringify({ kieApiToken: token }),
-    });
-    if (!res.ok) throw new Error((await res.json()).error ?? "Failed to save");
-    setKieKeyStatus("set");
-    setKieKeySet(true);
-  };
-
-  const handleKieKeyDelete = async () => {
-    const h = await authHeader();
-    await fetch("/api/settings/kie-key", { method: "DELETE", headers: h });
-    setKieKeyStatus("unset");
-    setKieKeySet(false);
   };
 
   const handleAzureKeySave = async (key: string) => {
@@ -1506,8 +1317,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           top: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 10000,
-          width: "min(75vw, 960px)",
-          height: "min(75vh, 680px)",
+          width: "min(94vw, 1180px)",
+          height: "min(88vh, 820px)",
           display: "flex",
           borderRadius: "18px",
           background: "rgba(10, 11, 14, 0.98)",
@@ -1520,7 +1331,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         {/* ── Left sidebar ── */}
         <div
           style={{
-            width: "200px",
+            width: "168px",
             flexShrink: 0,
             borderRight: "1px solid rgba(255,255,255,0.06)",
             display: "flex",
@@ -1549,7 +1360,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <button
                 key={item.id}
                 id={`settings-nav-${item.id}`}
-                onClick={() => setActiveNav(item.id)}
+                onClick={() => changeNav(item.id)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -1609,7 +1420,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           >
             <button
               id="settings-close"
-              onClick={onClose}
+              onClick={closeSettings}
               title="Close (Esc)"
               style={{
                 display: "flex",
@@ -1651,9 +1462,11 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <ApiKeysPanel
                 azureBaseUrl={azureBaseUrl}
                 onBaseUrlChange={handleBaseUrlChange}
-                kieKeyStatus={kieKeyStatus}
-                onKieKeySave={handleKieKeySave}
-                onKieKeyDelete={handleKieKeyDelete}
+                onProviderReadyChange={setProviderReady}
+                onOpenModels={(kind) => { const next = kind === "text" ? "text-models" : kind === "image" ? "image-models" : "video-models"; if (selectedProviderId) setSelectedProviderIds((previous) => ({ ...previous, [next]: selectedProviderId })); changeNav(next); }}
+                selectedProviderId={selectedProviderId}
+                onProviderSelect={selectProvider}
+                onDirtyChange={setUnsavedChanges}
                 azureKeyStatus={azureKeyStatus}
                 onAzureKeySave={handleAzureKeySave}
                 onAzureKeyDelete={handleAzureKeyDelete}
@@ -1663,6 +1476,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             )}
             {activeNav === "image-models" && (
               <ImageModelsPanel
+                selectedProviderId={selectedProviderId}
+                onProviderSelect={selectProvider}
+                onDirtyChange={setUnsavedChanges}
                 providers={modelProviders}
                 onProviderChange={handleProviderChange}
                 azureDeployments={azureDeployments}
@@ -1671,14 +1487,16 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             )}
             {activeNav === "video-models" && (
               <VideoModelsPanel
-                providers={modelProviders}
-                onProviderChange={handleProviderChange}
-                azureDeployments={azureDeployments}
-                onDeploymentChange={handleDeploymentChange}
+                selectedProviderId={selectedProviderId}
+                onProviderSelect={selectProvider}
+                onDirtyChange={setUnsavedChanges}
               />
             )}
             {activeNav === "text-models" && (
               <TextModelsPanel
+                selectedProviderId={selectedProviderId}
+                onProviderSelect={selectProvider}
+                onDirtyChange={setUnsavedChanges}
                 azureKeyStatus={azureKeyStatus}
                 azureBaseUrl={azureBaseUrl}
                 azureTextDeployment={azureTextDeployment}

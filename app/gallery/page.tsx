@@ -2,7 +2,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
-import { IMAGE_MODELS, VIDEO_MODELS, AZURE_POPULAR_SIZES, validateAzureCustomSize } from "@/lib/modelConfig";
+import { AZURE_POPULAR_SIZES, validateAzureCustomSize } from "@/lib/modelConfig";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 import { PROVIDERS, getModelProvider, setModelProvider, modelHasProviderChoice } from "@/lib/providers";
 import { useWorkflowStore } from "@/lib/store";
 import { Maximize2, Minimize2, ShieldAlert, X } from "lucide-react";
@@ -321,7 +322,7 @@ function saveSettings(tab: Tab, folderId: string | null, s: SavedSettings) {
 function isAzureActiveForModel(modelId: string, azureResolutionOptions?: string[]): boolean {
   if (typeof window === "undefined" || !azureResolutionOptions?.length) return false;
   try {
-    const provider = JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[modelId] ?? "kie";
+    const provider = JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[modelId] ?? "custom";
     const base     = localStorage.getItem("aiui-azure-base-url") ?? "";
     const deploy   = JSON.parse(localStorage.getItem("aiui-azure-endpoints") ?? "{}")[modelId] ?? "";
     return provider === "azure" && !!base && !!deploy;
@@ -575,6 +576,7 @@ function reorderAndRenumberTags(
 // ── Inner page ────────────────────────────────────────────────────────────────
 
 function GalleryInner() {
+  const { IMAGE_MODELS, VIDEO_MODELS, ready: catalogReady } = useModelCatalog();
   const { state, isMobile } = useSidebar();
   const router = useRouter();
   const pathname = usePathname();
@@ -620,11 +622,15 @@ function GalleryInner() {
   const [prompt, setPrompt] = useState<string>(() => loadSettings(tab, selectedFolderId)?.prompt ?? "");
   const prevFolderIdRef = useRef<string | null>(selectedFolderId);
   const settingsSnapshotRef = useRef<SavedSettings | null>(null);
-  const [modelId, setModelId] = useState<string>(() => {
+  const [selectedModelId, setModelId] = useState<string>(() => {
     const s = loadSettings(tab, selectedFolderId);
-    return (s?.modelId && models.find(m => m.id === s.modelId)) ? s.modelId : models[0].id;
+    return (s?.modelId && (models.find(m => m.id === s.modelId) || s.modelId.startsWith("provider-model:"))) ? s.modelId : models[0].id;
   });
-  const [aspectRatio, setAspectRatio] = useState<string>(() => {
+  const modelId = catalogReady && !models.some((model) => model.id === selectedModelId) ? models[0].id : selectedModelId;
+  const configuredImage = IMAGE_MODELS.find((model) => model.id === modelId);
+  const configuredVideo = VIDEO_MODELS.find((model) => model.id === modelId);
+  const configuredModel = models.find((model) => model.id === modelId);
+  const [storedAspectRatio, setAspectRatio] = useState<string>(() => {
     const s = loadSettings(tab, selectedFolderId);
     const mId = (s?.modelId && models.find(m => m.id === s.modelId)) ? s.modelId : models[0].id;
     const mdl = models.find(m => m.id === mId) ?? models[0];
@@ -635,15 +641,20 @@ function GalleryInner() {
     if (s?.aspectRatio && mdl.ratios.includes(s.aspectRatio)) return s.aspectRatio;
     return ("defaultRatio" in mdl ? (mdl as { defaultRatio: string }).defaultRatio : null) ?? mdl.ratios[0] ?? "1:1";
   });
+  const aspectRatio = modelId.startsWith("provider-model:") && configuredModel && !configuredModel.ratios.includes(storedAspectRatio) ? configuredModel.ratios[0] : storedAspectRatio;
   const [azureCustomWidth, setAzureCustomWidth] = useState<number | undefined>(() => loadSettings(tab, selectedFolderId)?.azureCustomWidth);
   const [azureCustomHeight, setAzureCustomHeight] = useState<number | undefined>(() => loadSettings(tab, selectedFolderId)?.azureCustomHeight);
-  const [quality, setQuality] = useState<string>(() => loadSettings(tab, selectedFolderId)?.quality ?? "2k");
+  const [storedQuality, setQuality] = useState<string>(() => loadSettings(tab, selectedFolderId)?.quality ?? "2k");
+  const configuredQualities = configuredImage?.apiInput.qualityOptions;
+  const quality = modelId.startsWith("provider-model:") && configuredQualities?.length && !configuredQualities.includes(storedQuality) ? configuredQualities[0] : storedQuality;
   const [isAzureProvider, setIsAzureProvider] = useState<boolean>(false);
-  const [providerId, setProviderId] = useState<ReturnType<typeof getModelProvider>>("kie");
+  const [providerId, setProviderId] = useState<ReturnType<typeof getModelProvider>>("custom");
   const [count, setCount] = useState<number>(() => loadSettings(tab, selectedFolderId)?.count ?? 1);
-  const [duration, setDuration] = useState<number>(() => loadSettings(tab, selectedFolderId)?.duration ?? 5);
+  const [storedDuration, setDuration] = useState<number>(() => loadSettings(tab, selectedFolderId)?.duration ?? 5);
+  const duration = modelId.startsWith("provider-model:") && configuredVideo?.durations.length && !configuredVideo.durations.includes(storedDuration) ? configuredVideo.defaultDuration : storedDuration;
   const [mode, setMode] = useState<string>(() => loadSettings(tab, selectedFolderId)?.mode ?? "");
-  const [resolution, setResolution] = useState<string>("");
+  const [storedResolution, setResolution] = useState<string>("");
+  const resolution = modelId.startsWith("provider-model:") && configuredVideo?.resolutions?.length && !configuredVideo.resolutions.includes(storedResolution) ? configuredVideo.defaultResolution ?? configuredVideo.resolutions[0] : storedResolution;
   const [azureResolution, setAzureResolution] = useState<string>(() => loadSettings(tab, selectedFolderId)?.azureResolution ?? "1k");
   const [sound, setSound] = useState<boolean>(() => loadSettings(tab, selectedFolderId)?.sound ?? false);
   const [seed, setSeed] = useState<number | undefined>(0);
@@ -711,8 +722,8 @@ function GalleryInner() {
   const [genError, setGenError] = useState<string>("");
   const debugMode        = useWorkflowStore((s) => s.debugMode);
   const addToast         = useWorkflowStore((s) => s.addToast);
-  const kieKeySet        = useWorkflowStore((s) => s.kieKeySet);
-  const setKieKeySet     = useWorkflowStore((s) => s.setKieKeySet);
+  const providerReady        = useWorkflowStore((s) => s.providerReady);
+  const setProviderReady     = useWorkflowStore((s) => s.setProviderReady);
   const [sourceFilter, setSourceFilter] = useState<"generated" | "uploaded">(initialSource);
 
   useEffect(() => {
@@ -1058,7 +1069,7 @@ function GalleryInner() {
     if (!authLoaded) return;
     loadItems(tab, 0, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoaded, kieKeySet]);
+  }, [authLoaded, providerReady]);
 
   useEffect(() => {
     clearSelection();
@@ -1071,6 +1082,7 @@ function GalleryInner() {
       if (cached) { setItems(cached.items); setHasMore(cached.hasMore); } else setItems([]);
       if (user) loadItems(tab, 0, true);
     }
+    if (!catalogReady) return;
     const newModels = tab === "videos" ? VIDEO_MODELS : IMAGE_MODELS;
     const saved = loadSettings(tab, prevFolderIdRef.current);
     const model = (saved?.modelId ? newModels.find(m => m.id === saved.modelId) : null) ?? newModels[0];
@@ -1118,7 +1130,7 @@ function GalleryInner() {
       requestAnimationFrame(() => requestAnimationFrame(() => resizeTextarea(el)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, catalogReady]);
 
   // Resize textarea on initial mount if a saved prompt is already loaded
   useEffect(() => {
@@ -1146,7 +1158,7 @@ function GalleryInner() {
     if ("defaultResolution" in m) setResolution((m as { defaultResolution: string }).defaultResolution);
     if (!isVideo) {
       const im = m as { apiInput?: { qualityOptions?: string[] }; azureQualityOptions?: string[] };
-      const provider = (() => { try { return JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[m.id] ?? "kie"; } catch { return "kie"; } })();
+      const provider = (() => { try { return JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[m.id] ?? "custom"; } catch { return "custom"; } })();
       const base     = (() => { try { return localStorage.getItem("aiui-azure-base-url") ?? ""; } catch { return ""; } })();
       const deploy   = (() => { try { return JSON.parse(localStorage.getItem("aiui-azure-endpoints") ?? "{}")[m.id] ?? ""; } catch { return ""; } })();
       const azure    = provider === "azure" && !!base && !!deploy && !!im.azureQualityOptions;
@@ -1232,6 +1244,7 @@ function GalleryInner() {
 
   // Persist settings
   useEffect(() => {
+    if (!catalogReady) return;
     const refImageUrls = [...new Set(refImages
       .filter(r => r.cdnUrl && !r.uploading && !r.error)
       .map(r => r.cdnUrl!))];
@@ -1249,7 +1262,7 @@ function GalleryInner() {
     };
     settingsSnapshotRef.current = s;
     saveSettings(tab, prevFolderIdRef.current, s);
-  }, [tab, prompt, modelId, aspectRatio, quality, count, duration, mode, sound, refImages, azureResolution, azureCustomWidth, azureCustomHeight, promptTextMode, multiPromptMode, vidStartFrame, vidEndFrame, vidResources, vidVideoRef, vidRefVideos, vidRefAudios, vidElements, taggedImages]);
+  }, [catalogReady, tab, prompt, modelId, aspectRatio, quality, count, duration, mode, sound, refImages, azureResolution, azureCustomWidth, azureCustomHeight, promptTextMode, multiPromptMode, vidStartFrame, vidEndFrame, vidResources, vidVideoRef, vidRefVideos, vidRefAudios, vidElements, taggedImages]);
 
   // Save/restore all settings when switching folders
   useEffect(() => {
@@ -1632,7 +1645,7 @@ function GalleryInner() {
       // Read provider settings from localStorage (same keys as GenerateNode)
       const azureBaseUrl    = (() => { try { return localStorage.getItem("aiui-azure-base-url") ?? ""; } catch { return ""; } })();
       const azureDeployment = (() => { try { return JSON.parse(localStorage.getItem("aiui-azure-endpoints") ?? "{}")[modelId] ?? ""; } catch { return ""; } })();
-      const providerForModel = (() => { try { return JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[modelId] ?? "kie"; } catch { return "kie"; } })();
+      const providerForModel = (() => { try { return JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[modelId] ?? "custom"; } catch { return "custom"; } })();
       const isAzure = !!(azureBaseUrl && azureDeployment && providerForModel === "azure");
       const isCodex = providerForModel === "codex";
 
@@ -1784,7 +1797,7 @@ function GalleryInner() {
   };
 
   const generate = async () => {
-    if (kieKeySet === false) return;
+    if (providerReady === false && (isVideo || (providerId !== "azure" && providerId !== "codex"))) return;
     if (!prompt.trim() && !isVideo) return;
     requestNotificationPermission();
     if (refImages.some(r => r.uploading)) { setGenError("Images still uploading…"); setTimeout(() => setGenError(""), 3_000); return; }
@@ -1846,7 +1859,7 @@ function GalleryInner() {
       const dbgRefUrls = refImages.filter(r => r.cdnUrl && !r.error && !dbgExtraSet.has(r.cdnUrl!)).map(r => r.cdnUrl!);
       const dbgAzureBaseUrl    = (() => { try { return localStorage.getItem("aiui-azure-base-url") ?? ""; } catch { return ""; } })();
       const dbgAzureDeployment = (() => { try { return JSON.parse(localStorage.getItem("aiui-azure-endpoints") ?? "{}")[modelId] ?? ""; } catch { return ""; } })();
-      const dbgProvider        = (() => { try { return JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[modelId] ?? "kie"; } catch { return "kie"; } })();
+      const dbgProvider        = (() => { try { return JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[modelId] ?? "custom"; } catch { return "custom"; } })();
       const dbgIsAzure = !!(dbgAzureBaseUrl && dbgAzureDeployment && dbgProvider === "azure");
       const dbgTaggedImageUrls = dbgAssets.filter(a => a.kind === "image").map(a => a.url);
       const dbgTaggedVideoUrls = dbgAssets.filter(a => a.kind === "video").map(a => a.url);
@@ -1857,7 +1870,7 @@ function GalleryInner() {
       console.log("[Gallery Debug] Generate request:", {
         type: isVideo ? "video" : "image",
         prompt: dbgPrompt, model: modelId, aspectRatio, quality,
-        provider: dbgIsAzure ? "azure" : "kie",
+        provider: dbgIsAzure ? "azure" : "custom",
         ...(dbgIsAzure ? {
           azureBaseUrl: dbgAzureBaseUrl, azureDeployment: dbgAzureDeployment, azureQuality: quality, azureResolution,
           ...(aspectRatio === "custom" ? { azureCustomWidth, azureCustomHeight } : {}),
@@ -2198,7 +2211,7 @@ function GalleryInner() {
   const displayVidRefAudios = getDisplayOrder(vidRefAudios, draggingId, reorderOverId);
 
   const vidRequiresPrompt = isVideo && !!(vidModel?.apiInput.promptMaxLength);
-  const canGenerate = kieKeySet === false ? false : submitting ? false : promptOverLimit ? false : (vidRequiresPrompt || !isVideo) ? prompt.trim().length > 0 : true;
+  const canGenerate = providerReady === false && (isVideo || (providerId !== "azure" && providerId !== "codex")) ? false : submitting ? false : promptOverLimit ? false : (vidRequiresPrompt || !isVideo) ? prompt.trim().length > 0 : true;
 
   const handleAddReference = useCallback((url: string) => {
     if (refImages.some(r => r.cdnUrl === url || r.objectUrl === url)) {
@@ -2358,7 +2371,7 @@ function GalleryInner() {
     requestAnimationFrame(() => {
       if (inputRef.current) resizeTextarea(inputRef.current);
     });
-  }, [tab, modelId]);
+  }, [tab, modelId, IMAGE_MODELS, VIDEO_MODELS]);
 
   const clearDeletedFromNodes = useCallback((deletedUrls: Set<string>) => {
     const { nodes, updateNodeData } = useWorkflowStore.getState();
@@ -2902,7 +2915,7 @@ function GalleryInner() {
                                     const imageUrls = [...extraUrls, ...storedRefs.filter(u => !dedupedExtra.has(u))];
                                     const azureBaseUrl    = (() => { try { return localStorage.getItem("aiui-azure-base-url") ?? ""; } catch { return ""; } })();
                                     const azureDeployment = (() => { try { return JSON.parse(localStorage.getItem("aiui-azure-endpoints") ?? "{}")[modelId] ?? ""; } catch { return ""; } })();
-                                    const providerForModel = (() => { try { return JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[modelId] ?? "kie"; } catch { return "kie"; } })();
+                                    const providerForModel = (() => { try { return JSON.parse(localStorage.getItem("aiui-model-providers") ?? "{}")[modelId] ?? "custom"; } catch { return "custom"; } })();
                                     const isAzure = !!(azureBaseUrl && azureDeployment && providerForModel === "azure");
                                     const isCodex = providerForModel === "codex";
                                     const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ prompt: resolvedPrompt, model: modelId, aspectRatio: pg.aspectRatio, quality, imageUrls, ...(isAzure ? { azureBaseUrl, azureDeployment, azureQuality: quality } : {}), ...(isCodex ? { codexProvider: true } : {}) }) });
@@ -4082,7 +4095,7 @@ function GalleryInner() {
                 )}
 
                 {/* Aspect ratio */}
-                {ratios.length > 0 && (
+                {ratios.some((ratio) => ratio !== "auto") && (
                   <AspectRatioDropdown
                     value={aspectRatio}
                     onChange={setAspectRatio}
@@ -5586,9 +5599,9 @@ function RatioPreview({ ratio }: { ratio: string }) {
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
-/** Backend brand mark for the Kie.ai/Azure Foundry/Codex CLI picker — distinct from ProviderIcon's model-brand icons. */
+/** Backend brand mark for the Custom Provider/Azure Foundry/Codex CLI picker — distinct from ProviderIcon's model-brand icons. */
 function ProviderBackendIcon({ id }: { id: (typeof PROVIDERS)[number]["id"] }) {
-  if (id === "kie") {
+  if (id === "custom") {
     return (
       <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "14px", height: "14px", fontSize: "11px", fontWeight: 700 }}>
         K

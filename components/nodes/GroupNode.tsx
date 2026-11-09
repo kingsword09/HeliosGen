@@ -6,7 +6,7 @@ import { useReadOnly } from "@/lib/readOnlyContext";
 import { arrangeNodes } from "@/lib/arrangeNodes";
 import { usePipelineRunner } from "@/lib/usePipelineRunner";
 import { makeZip } from "@/lib/makeZip";
-import { VIDEO_MODELS } from "@/lib/modelConfig";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 
 export type GroupNodeType = Node<NodeData, "groupNode">;
 
@@ -169,6 +169,7 @@ function InlineWarning({ messages }: { messages: string[] }) {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeType>) {
+  const { VIDEO_MODELS } = useModelCatalog();
   const readOnly = useReadOnly();
   const updateNodeData  = useWorkflowStore((s) => s.updateNodeData);
   const updateNodeSize  = useWorkflowStore((s) => s.updateNodeSize);
@@ -233,7 +234,7 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
         allAncestorIds: collectAncestors(genNode.id, allNodes, edges),
       };
     });
-  }, [allNodes, edges, memberIds]);
+  }, [allNodes, edges, memberIds, VIDEO_MODELS]);
 
   const readyJobCount = useMemo(() => jobs.filter((j) => j.missingInputs.length === 0).length, [jobs]);
 

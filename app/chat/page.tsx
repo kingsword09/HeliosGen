@@ -5,7 +5,8 @@ import { flushSync } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useChatSessionStore, type StoredMessage, type ChatSession } from "@/lib/chatSessionStore";
 import { getToken } from "@/lib/galleryUtils";
-import { MODEL_GROUPS, MODELS, type ModelId } from "@/lib/models";
+import type { ModelId } from "@/lib/models";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 import { SYSTEM_PROMPT } from "@/lib/systemPrompt";
 import { Send, ChevronUp, Copy, Check } from "lucide-react";
 import { motion } from "motion/react";
@@ -31,6 +32,7 @@ function ModelPicker({
   direction?: "up" | "down";
   disabledIds?: string[];
 }) {
+  const { MODEL_GROUPS, MODELS } = useModelCatalog();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -193,7 +195,7 @@ function LandingView({
   const [headingDone, setHeadingDone] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const animatedPlaceholder = useCyclingPlaceholder(!headingDone || input.length > 0);
-  const kieKeySet   = useWorkflowStore((s) => s.kieKeySet);
+  const providerReady   = useWorkflowStore((s) => s.providerReady);
   const azureKeySet = useWorkflowStore((s) => s.azureKeySet);
   const disabledIds = azureKeySet === true ? [] : ["azure-auto"];
 
@@ -265,12 +267,12 @@ function LandingView({
             <ModelPicker model={model} onChange={onModelChange} direction="down" disabledIds={disabledIds} />
             <button
               onClick={() => submit(input)}
-              disabled={!input.trim() || kieKeySet === false || disabledIds.includes(model)}
+              disabled={!input.trim() || (model !== "azure-auto" && providerReady === false) || disabledIds.includes(model)}
               style={{
                 width: "36px", height: "36px", borderRadius: "50%", border: "none",
-                background: input.trim() && kieKeySet !== false && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)",
-                color: input.trim() && kieKeySet !== false && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)",
-                cursor: input.trim() && kieKeySet !== false && !disabledIds.includes(model) ? "pointer" : "not-allowed",
+                background: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)",
+                color: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)",
+                cursor: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, transition: "background 150ms, color 150ms",
               }}
@@ -309,9 +311,9 @@ function ChatWindow({
     session.messages.map((m) => ({ ...m }))
   );
   const [input, setInput] = useState("");
-  const [model, setModel] = useState<ModelId>((session.model || defaultModel || "claude-sonnet-4-6") as ModelId);
+  const [model, setModel] = useState<ModelId>((session.model || defaultModel || "custom-text") as ModelId);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
-  const kieKeySet   = useWorkflowStore((s) => s.kieKeySet);
+  const providerReady   = useWorkflowStore((s) => s.providerReady);
   const azureKeySet = useWorkflowStore((s) => s.azureKeySet);
   const disabledIds = azureKeySet === true ? [] : ["azure-auto"];
 
@@ -459,7 +461,7 @@ function ChatWindow({
             />
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "12px", flexShrink: 0 }}>
               <ModelPicker model={model} onChange={handleModelChange} direction="down" disabledIds={disabledIds} />
-              <button onClick={() => send(input)} disabled={!input.trim() || kieKeySet === false || disabledIds.includes(model)} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", background: input.trim() && kieKeySet !== false && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)", color: input.trim() && kieKeySet !== false && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)", cursor: input.trim() && kieKeySet !== false && !disabledIds.includes(model) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 150ms, color 150ms" }}>
+              <button onClick={() => send(input)} disabled={!input.trim() || (model !== "azure-auto" && providerReady === false) || disabledIds.includes(model)} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", background: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)", color: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)", cursor: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 150ms, color 150ms" }}>
                 <Send size={15} />
               </button>
             </div>
@@ -567,12 +569,12 @@ function ChatWindow({
             <ModelPicker model={model} onChange={handleModelChange} disabledIds={disabledIds} />
             <button
               onClick={() => send(input)}
-              disabled={!input.trim() || isStreaming || kieKeySet === false || disabledIds.includes(model)}
+              disabled={!input.trim() || isStreaming || (model !== "azure-auto" && providerReady === false) || disabledIds.includes(model)}
               style={{
                 width: "32px", height: "32px", borderRadius: "8px", border: "none",
-                background: input.trim() && !isStreaming && kieKeySet !== false && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)",
-                color: input.trim() && !isStreaming && kieKeySet !== false && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)",
-                cursor: input.trim() && !isStreaming && kieKeySet !== false && !disabledIds.includes(model) ? "pointer" : "not-allowed",
+                background: input.trim() && !isStreaming && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)",
+                color: input.trim() && !isStreaming && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)",
+                cursor: input.trim() && !isStreaming && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, transition: "background 150ms, color 150ms",
               }}
@@ -606,7 +608,7 @@ function ChatInner() {
 
   const { sessions, createSession, upsertSession, preferredModel, setPreferredModel } = useChatSessionStore();
   const [hydrated, setHydrated] = useState(false);
-  const [landingModel, setLandingModel] = useState<ModelId>("claude-sonnet-4-6");
+  const [landingModel, setLandingModel] = useState<ModelId>("custom-text");
   const [pendingMessage, setPendingMessage] = useState("");
 
   // Sync landingModel from store once hydrated

@@ -1,9 +1,10 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { DATA_DIR } from "./guest/paths";
+import type { ProviderTask } from "./customProvider";
 
 export type JobResult =
-  | { status: "pending"; type?: "image" | "video"; userId?: string }
+  | { status: "pending"; type?: "image" | "video"; userId?: string; providerTask?: ProviderTask }
   | { status: "done"; imageUrl?: string; imageUrls?: string[]; videoUrl?: string }
   | { status: "error"; error: string };
 

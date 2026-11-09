@@ -7,17 +7,17 @@ import { tmpdir } from "node:os";
 import { join, normalize } from "node:path";
 import { MEDIA_DIR } from "@/lib/guest/paths";
 import { jobStore } from "@/lib/jobStore";
-import { pollKieJob } from "@/lib/kieJobPoller";
-import { ensureKieReachableImages } from "@/lib/kieUpload";
 import { ensureR2, uploadBuffer } from "@/lib/storage";
 import { IMAGE_MODELS, validateAzureCustomSize } from "@/lib/modelConfig";
-import { getKieTokenForUser } from "@/lib/getKieToken";
+import { buildModelCatalog } from "@/lib/modelCatalog";
+import { publicProviderSettings } from "@/lib/providerSettings";
 import { getAzureKeyForUser } from "@/lib/getAzureKey";
 import { GUEST_USER_ID } from "@/lib/guestMode";
 import * as guestDb from "@/lib/guest/db";
 
-const BASE   = "https://api.kie.ai";
-const CREATE = `${BASE}/api/v1/jobs/createTask`;
+import { configuredProvider, generateProviderImage } from "@/lib/customProvider";
+import { prepareProviderGeneration } from "@/lib/providerRequest";
+import { startProviderJob } from "@/lib/providerJobs";
 
 /**
  * A minimal HTTPS POST that uses Node.js core — NOT Next.js's patched `fetch`.
@@ -272,8 +272,9 @@ async function runCodexImagegen(opts: {
 export const maxDuration = 1000;
 
 export async function POST(req: NextRequest) {
+  const requestBody = await req.json();
   const {
-    model       = "nano-banana-2",
+    model       = "custom-image",
     prompt,
     imageUrls   = [],
     aspectRatio = "1:1",
@@ -286,7 +287,7 @@ export async function POST(req: NextRequest) {
     azureCustomHeight,
     codexProvider,
     debugOnly,
-  } = (await req.json()) as {
+  } = requestBody as {
     model?:              string;
     prompt?:             string;
     imageUrls?:          string[];
@@ -308,16 +309,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  if (!prompt?.trim()) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+  if (typeof prompt !== "string" || !prompt.trim()) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
-  const cfg = IMAGE_MODELS.find((m) => m.id === model);
-  if (!cfg) return NextResponse.json({ error: `Unknown model: ${model}` }, { status: 400 });
+  const cfg = buildModelCatalog(publicProviderSettings()).IMAGE_MODELS.find((entry) => entry.id === model) ?? IMAGE_MODELS.find((entry) => entry.id === model) ?? IMAGE_MODELS[0];
+  if (!Array.isArray(imageUrls) || imageUrls.some((url) => typeof url !== "string")) return NextResponse.json({ error: "Reference images must be URL strings." }, { status: 400 });
 
   let r2ImageUrls: string[] = [];
   try {
     r2ImageUrls = await resolveImages(imageUrls);
-  } catch {
-    // image mirroring failures are non-fatal — proceed without reference images
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load reference images." }, { status: 400 });
   }
 
   const currentUserId = GUEST_USER_ID;
@@ -496,71 +497,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ taskId: codexTaskId });
   }
 
-  // ── Kie.ai branch ─────────────────────────────────────────────────────────────
-  const kieToken = await getKieTokenForUser();
-  if (!kieToken) return NextResponse.json({ error: "No Kie.ai API key configured. Add one in Settings." }, { status: 401 });
-
-  // The app polls kie.ai directly (see lib/kieJobPoller), so no callback URL.
-  const callBackUrl = undefined;
-
   try {
-    const { apiInput } = cfg;
-
-    // ── Dual-mode models (e.g. GPT Image 2) ────────────────────────────────────
-    const hasImages = r2ImageUrls.length > 0;
-    const resolvedApiId = !hasImages && cfg.textOnlyApiId ? cfg.textOnlyApiId : cfg.apiId;
-
-    // kie.ai can't fetch our local reference images, so push them to kie's
-    // temporary file store first.
-    let kieImageUrls = r2ImageUrls;
-    if (hasImages) {
-      kieImageUrls = await ensureKieReachableImages(r2ImageUrls, kieToken);
-    }
-
-    const input: Record<string, unknown> = {
-      prompt:                    prompt.slice(0, apiInput.promptMaxLength),
-      [apiInput.aspectRatioKey]: aspectRatio,
-    };
-
-    if (apiInput.outputFormat)               input.output_format           = apiInput.outputFormat;
-    if (apiInput.imageInputKey && hasImages) input[apiInput.imageInputKey] = kieImageUrls.slice(0, cfg.maxImages);
-    if (apiInput.qualityKey) {
-      input[apiInput.qualityKey] = apiInput.qualityMap
-        ? (apiInput.qualityMap[quality] ?? quality)
-        : quality === "4k" ? "4K" : quality === "2k" ? "2K" : quality === "1k" ? "1K" : quality;
-    }
-    if (apiInput.extra) Object.assign(input, apiInput.extra);
-
-    const requestBody = { model: resolvedApiId, callBackUrl, input };
-
-    const res = await fetch(CREATE, {
-      method:  "POST",
-      headers: { Authorization: `Bearer ${kieToken}`, "Content-Type": "application/json" },
-      body:    JSON.stringify(requestBody),
+    const provider = configuredProvider(model, "image");
+    const input = prepareProviderGeneration(provider, "image", {
+      model, prompt, imageUrls: r2ImageUrls, aspectRatio: requestBody.aspectRatio, quality: requestBody.quality,
     });
-
-    if (!res.ok) {
-      if (res.status === 401) throw new Error("Invalid Kie.ai API key — please update it in Settings.");
-      throw new Error(await res.text());
-    }
-    const d = await res.json();
-    if (d.code !== undefined && d.code !== 200) throw new Error(d.msg ?? `API error ${d.code}`);
-
-    const taskId = d.data?.taskId ?? d.data?.id ?? d.taskId ?? d.id;
-    if (!taskId) throw new Error("No task ID in response");
-
-    jobStore.set(taskId, { status: "pending", userId: currentUserId ?? undefined });
-
-    guestDb.insertGeneration({
-      task_id: taskId, user_id: currentUserId, generation_type: "image",
-      status: "pending", prompt, model, aspect_ratio: aspectRatio, quality,
-      reference_image_urls: r2ImageUrls,
+    const taskId = startProviderJob("image", () => generateProviderImage(provider, input), {
+      user_id: currentUserId, model, prompt, aspect_ratio: input.aspectRatio ?? "auto", quality: input.quality,
+      reference_image_urls: imageUrls,
     });
-    pollKieJob(taskId, kieToken, "image");
-
-    return NextResponse.json({ taskId, referenceImageUrls: r2ImageUrls });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ taskId });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Provider generation failed." }, { status: 400 });
   }
 }

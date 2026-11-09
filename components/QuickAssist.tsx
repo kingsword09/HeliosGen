@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { getToken } from "@/lib/galleryUtils";
-import { MODEL_GROUPS, MODELS, type ModelId } from "@/lib/models";
+import type { ModelId } from "@/lib/models";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 import { useChatSessionStore } from "@/lib/chatSessionStore";
 import { SYSTEM_PROMPT } from "@/lib/systemPrompt";
 import { useWorkflowStore } from "@/lib/store";
@@ -16,6 +17,7 @@ interface Message {
 
 
 export function QuickAssist() {
+  const { MODEL_GROUPS, MODELS } = useModelCatalog();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");

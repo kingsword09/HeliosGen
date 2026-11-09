@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useWorkflowStore } from "@/lib/store";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 import { useChatSessionStore } from "@/lib/chatSessionStore";
 import { useFolderStore } from "@/lib/folderStore";
 import {
@@ -664,46 +665,29 @@ function CreditIcon({ size = 12 }: { size?: number }) {
 
 // ── Sidebar component ─────────────────────────────────────────────────────────
 export function AppSidebar() {
+  useModelCatalog();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "images";
   const activeChatId = searchParams.get("id");
 
-  const [balance, setBalance] = React.useState<number | null>(null);
+  const providerReady = useWorkflowStore((state) => state.providerReady);
 
   const setSettingsOpen   = useWorkflowStore((s) => s.setSettingsOpen);
-  const setKieKeySet      = useWorkflowStore((s) => s.setKieKeySet);
+  const setProviderReady      = useWorkflowStore((s) => s.setProviderReady);
   const setAzureKeySet    = useWorkflowStore((s) => s.setAzureKeySet);
 
   React.useEffect(() => {
-    fetch("/api/settings/kie-key")
+    fetch("/api/settings/provider")
       .then((r) => r.json())
-      .then((d) => setKieKeySet(!!d.hasToken))
-      .catch(() => setKieKeySet(null));
+      .then((d) => setProviderReady(!!d.ready))
+      .catch(() => setProviderReady(null));
     fetch("/api/settings/azure-key")
       .then((r) => r.json())
       .then((d) => setAzureKeySet(!!d.hasToken))
       .catch(() => setAzureKeySet(null));
-  }, [setKieKeySet, setAzureKeySet]);
-
-  React.useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        const res = await fetch("/api/credit");
-        if (!res.ok) return;
-        const data = await res.json();
-        const val = typeof data?.data === "number"
-          ? data.data
-          : (data?.data?.balance ?? data?.balance ?? null);
-        setBalance(val);
-      } catch { /* ignore */ }
-    };
-    fetchBalance();
-    const id = setInterval(fetchBalance, 60_000);
-    window.addEventListener("credits-refresh", fetchBalance);
-    return () => { clearInterval(id); window.removeEventListener("credits-refresh", fetchBalance); };
-  }, []);
+  }, [setProviderReady, setAzureKeySet]);
 
   const { sessions, deleteSession } = useChatSessionStore();
 
@@ -997,7 +981,7 @@ export function AppSidebar() {
                   {displayName && <div className="text-[13px] font-semibold text-white/90 truncate leading-tight">{displayName}</div>}
                   <div className="flex items-center gap-1 mt-0.5 text-[11px] text-white/40">
                     <CreditIcon />
-                    <span>{balance !== null ? `${balance.toLocaleString()} Credits` : "0 Credits"}</span>
+                    <span>{providerReady ? "Custom Provider" : "Provider not configured"}</span>
                   </div>
                 </div>
                 <MoreHorizontal size={15} className="text-white/30 shrink-0 group-data-[collapsible=icon]:hidden" />
@@ -1023,20 +1007,17 @@ export function AppSidebar() {
                 {displayName && <div className="text-[15px] font-semibold text-white truncate">{displayName}</div>}
                 <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-white/40">
                   <CreditIcon size={13} />
-                  <span>{balance !== null ? `${balance.toLocaleString()} Credits` : "0 Credits"}</span>
+                  <span>{providerReady ? "Custom Provider" : "Provider not configured"}</span>
                 </div>
               </div>
             </div>
 
             <DropdownMenuSeparator className="!bg-white/[0.07] !my-0 !mx-0" />
 
-            {/* Purchase Kie Credits */}
             <DropdownMenuItem
-              className="flex items-center justify-between rounded-none px-4 py-3 text-[14px] text-white/60 hover:text-white focus:text-white focus:bg-white/[0.06] cursor-pointer"
-              onClick={() => window.open("https://kie.ai?ref=25abb3f2236cbff9780ab9c2f84479ec", "_blank")}
+              onClick={() => useWorkflowStore.getState().setSettingsOpen(true)}
             >
-              <span>Purchase Kie Credits</span>
-              <CreditIcon size={15} />
+              Configure Provider
             </DropdownMenuItem>
 
             <DropdownMenuSeparator className="!bg-white/[0.07] !my-0 !mx-0" />

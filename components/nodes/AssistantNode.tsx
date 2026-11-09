@@ -7,22 +7,19 @@ import { useAnimatedPopup } from "@/lib/useAnimatedPopup";
 import CornerResizer from "./CornerResizer";
 import { useGeneratingBorderAnimation } from "@/lib/useGeneratingBorderAnimation";
 import { useReadOnly } from "@/lib/readOnlyContext";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 
 type AssistantNodeType = Node<NodeData, "assistantNode">;
 
-const MODELS = [
-  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
-];
-
 export default function AssistantNode({ id, data, selected }: NodeProps<AssistantNodeType>) {
+  const { MODELS } = useModelCatalog();
   const readOnly = useReadOnly();
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData);
   const onNodesChange = useWorkflowStore((s) => s.onNodesChange);
   const addNode = useWorkflowStore((s) => s.addNode);
   const insertEdge = useWorkflowStore((s) => s.insertEdge);
   const edges = useWorkflowStore((s) => s.edges);
-  const kieKeySet = useWorkflowStore((s) => s.kieKeySet);
+  const providerReady = useWorkflowStore((s) => s.providerReady);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -47,7 +44,8 @@ export default function AssistantNode({ id, data, selected }: NodeProps<Assistan
   const status = (data.status as string) ?? "idle";
   const outputText = (data.outputText as string) ?? "";
   const localPrompt = (data.localPrompt as string) ?? "";
-  const model = (data.model as string) ?? "claude-sonnet-4-6";
+  const selectedModel = (data.model as string) ?? "custom-text";
+  const model = MODELS.some((entry) => entry.id === selectedModel) ? selectedModel : MODELS[0].id;
 
   const [viewMode, setViewMode] = useState<"input" | "output">("input");
   const [loading, setLoading] = useState(false);
@@ -402,7 +400,7 @@ export default function AssistantNode({ id, data, selected }: NodeProps<Assistan
                 Stop
               </button>
             ) : (
-              <GenerateButton onClick={handleGenerate} disabled={!hasPrompt || kieKeySet === false} />
+              <GenerateButton onClick={handleGenerate} disabled={!hasPrompt || providerReady === false} />
             ))}
           </div>
         </div>

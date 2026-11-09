@@ -8,8 +8,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const ALLOWED_ORIGINS = [
-  "https://cdn.kie.ai",
-  "https://api.kie.ai",
   "https://replicate.delivery",
   "https://pbxt.replicate.delivery",
 ].map((o) => o.replace(/\/$/, ""));

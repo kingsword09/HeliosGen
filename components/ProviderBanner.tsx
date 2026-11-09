@@ -1,11 +1,11 @@
 "use client";
 import { useWorkflowStore } from "@/lib/store";
 
-export default function KieBanner() {
-  const kieKeySet = useWorkflowStore((s) => s.kieKeySet);
+export default function ProviderBanner() {
+  const providerReady = useWorkflowStore((s) => s.providerReady);
   const setSettingsOpen = useWorkflowStore((s) => s.setSettingsOpen);
 
-  if (kieKeySet !== false) return null;
+  if (providerReady !== false) return null;
 
   return (
     <button
@@ -35,14 +35,14 @@ export default function KieBanner() {
         <line x1="12" y1="17" x2="12.01" y2="17" />
       </svg>
       <span style={{ fontSize: "12px", color: "rgba(239,68,68,0.9)", fontWeight: 500 }}>
-        No Kie.ai API key configured — generation is disabled.
+        还没有连接服务商，请先在设置中保存 API 地址，再添加需要的模型。
       </span>
       <span style={{
         fontSize: "11px", fontWeight: 600, color: "rgba(239,68,68,0.7)",
         background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)",
         borderRadius: "5px", padding: "2px 8px", marginLeft: "4px",
       }}>
-        Add in Settings →
+        去配置 →
       </span>
     </button>
   );

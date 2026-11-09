@@ -74,8 +74,8 @@ export async function uploadDataUrl(dataUrl: string, folder: string): Promise<st
 
 /** Resolve any URL to a locally-stored `/generated/...` path. Remote URLs are
  *  mirrored to disk; `data:` URLs are decoded; already-local paths pass through.
- *  kie.ai reference images are made reachable separately by `lib/kieUpload.ts`
- *  (base64 upload to kie's temp store), so no public tunnel URL is needed. */
+ *  reference media is sent inline or uploaded through the configured provider,
+ *  so no public tunnel URL is needed. */
 export async function ensureStorage(url: string, folder: string): Promise<string> {
   if (url.startsWith("data:"))         return uploadDataUrl(url, folder);
   if (url.startsWith("/generated/"))   return url;

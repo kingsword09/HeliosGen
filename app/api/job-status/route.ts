@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jobStore } from "@/lib/jobStore";
-import { resumeKieJob } from "@/lib/kieJobPoller";
+import { resumeProviderJob } from "@/lib/providerJobs";
 import * as guestDb from "@/lib/guest/db";
 
 function recoverJob(taskId: string): "done" | "error" | "pending" | "not_found" {
@@ -28,12 +28,12 @@ export async function GET(req: NextRequest) {
 
   const result = jobStore.get(taskId);
 
-  // Task known to local store — return as-is, no kie.ai polling
+  // Task known to local store — return as-is, no custom provider polling
   if (result) {
     // If a restart killed the background poller for a job that's still pending,
     // restart it so the result can still land.
     if (result.status === "pending" && !taskId.startsWith("azure-")) {
-      resumeKieJob(taskId, result.type === "video" ? "video" : "image");
+      resumeProviderJob(taskId, result.type === "video" ? "video" : "image");
     }
     return NextResponse.json(result);
   }

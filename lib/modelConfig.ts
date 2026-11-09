@@ -11,7 +11,7 @@
 export interface ImageModel {
   /** Internal ID used in the store and API route */
   id: string;
-  /** Model string sent to the kie.ai API */
+  /** Model string sent to the custom provider API */
   apiId: string;
   /** Display name shown in the dropdown */
   name: string;
@@ -127,6 +127,18 @@ export function validateAzureCustomSize(width: number, height: number): string |
 }
 
 export const IMAGE_MODELS: ImageModel[] = [
+  {
+    id: "custom-image",
+    apiId: "custom-image",
+    name: "Custom Image Model",
+    provider: "Custom Provider",
+    ratios: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+    supportsImages: true,
+    maxImages: 16,
+    supportsQuality: true,
+    defaultQuality: "auto",
+    apiInput: { aspectRatioKey: "aspect_ratio", imageInputKey: "image_urls", qualityKey: "quality", qualityOptions: ["auto", "low", "medium", "high"], promptMaxLength: 32000 },
+  },
   // ── Google ──────────────────────────────────────────────────────────────────
   {
     id: "google-nano-banana",
@@ -282,7 +294,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     textOnlyApiId: "gpt-image-2-text-to-image",
     name: "GPT Image 2",
     provider: "OpenAI",
-    // Kie supports: auto, 1:1, 9:16, 16:9, 4:3, 3:4
+    // Preset ratios: auto, 1:1, 9:16, 16:9, 4:3, 3:4
     ratios: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4"],
     supportsImages: true,
     maxImages: 16,
@@ -339,6 +351,28 @@ export const IMAGE_MODELS: ImageModel[] = [
       promptMaxLength: 20000,
       extra: { nsfw_checker: false },
     },
+  },
+  {
+    id: "gpt-image-2.6-flare",
+    apiId: "gpt-image-2.6-flare",
+    name: "GPT Image 2.6 Flare",
+    provider: "OpenAI",
+    ratios: ["auto"],
+    supportsImages: true,
+    maxImages: 1,
+    supportsQuality: false,
+    apiInput: { aspectRatioKey: "size", imageInputKey: "image_urls", qualityKey: "quality", promptMaxLength: 32000 },
+  },
+  {
+    id: "gpt-image-2.6-sunburst",
+    apiId: "gpt-image-2.6-sunburst",
+    name: "GPT Image 2.6 Sunburst",
+    provider: "OpenAI",
+    ratios: ["auto"],
+    supportsImages: true,
+    maxImages: 1,
+    supportsQuality: false,
+    apiInput: { aspectRatioKey: "size", imageInputKey: "image_urls", qualityKey: "quality", promptMaxLength: 32000 },
   },
   {
     id: "gpt-image-2-5-flare",
@@ -511,6 +545,22 @@ export interface VideoModel {
 }
 
 export const VIDEO_MODELS: VideoModel[] = [
+  {
+    id: "custom-video",
+    apiId: "custom-video",
+    name: "Custom Video Model",
+    provider: "Custom Provider",
+    ratios: ["16:9", "9:16", "1:1"],
+    durations: [5, 10, 15],
+    defaultDuration: 5,
+    defaultRatio: "16:9",
+    handles: ["prompt", "startFrame", "endFrame", "resource", "videoRef", "referenceVideo", "audioRef"],
+    sound: true,
+    resolutions: ["720p", "1080p"],
+    defaultResolution: "720p",
+    maxResources: 16,
+    apiInput: { durationMin: 1, durationMax: 120, promptMaxLength: 32000 },
+  },
   // ── Google ──────────────────────────────────────────────────────────────────
   {
     id: "veo3_lite",

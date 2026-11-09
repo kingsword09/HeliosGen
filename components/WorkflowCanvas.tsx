@@ -19,7 +19,7 @@ import "@xyflow/react/dist/style.css";
 
 import { useWorkflowStore, NodeData } from "@/lib/store";
 import { requestWorkflowSync } from "@/lib/workflowSyncBus";
-import { VIDEO_MODELS } from "@/lib/modelConfig";
+import { getModelCatalog, useModelCatalog } from "@/lib/useModelCatalog";
 import CuttableEdge from "@/components/edges/CuttableEdge";
 import { topoSort, resolveInputs } from "@/lib/executor";
 import { NODE_SIZE, FALLBACK_SIZE, getLastNodeSettings, getDefaultNodeSize } from "@/lib/nodeTypes";
@@ -163,8 +163,8 @@ function nodeAcceptsPromptInput(node: Node<NodeData>, edges: Edge[]): boolean {
   if (node.type === "generateNode") return true;
 
   if (node.type === "videoGeneratorNode") {
-    const videoModelId = (node.data?.videoModel as string | undefined) ?? "kling-3.0";
-    const videoCfg = VIDEO_MODELS.find((m) => m.id === videoModelId);
+    const videoModelId = (node.data?.videoModel as string | undefined) ?? "custom-video";
+    const videoCfg = getModelCatalog().VIDEO_MODELS.find((m) => m.id === videoModelId);
     return videoCfg?.handles.includes("prompt" as never) ?? false;
   }
 
@@ -172,6 +172,7 @@ function nodeAcceptsPromptInput(node: Node<NodeData>, edges: Edge[]): boolean {
 }
 
 export default function WorkflowCanvas() {
+  const { VIDEO_MODELS } = useModelCatalog();
   const {
     nodes, edges,
     onNodesChange: _onNodesChange, onEdgesChange, onConnect,
@@ -916,7 +917,7 @@ export default function WorkflowCanvas() {
     if (sourceNode?.type !== "videoInputNode") return;
     if (targetNode?.type !== "videoGeneratorNode") return;
 
-    const videoModelId = (targetNode.data?.videoModel as string | undefined) ?? "kling-3.0";
+    const videoModelId = (targetNode.data?.videoModel as string | undefined) ?? "custom-video";
     const cfg = VIDEO_MODELS.find((m) => m.id === videoModelId);
     if (!cfg) return;
 
@@ -940,7 +941,7 @@ export default function WorkflowCanvas() {
 
     // Video exceeds model limit — ask the VideoInputNode to open the trimmer
     updateNodeData(connection.source, { triggerTrimMaxDuration: maxDuration });
-  }, [onConnect, nodes, updateNodeData]);
+  }, [onConnect, nodes, updateNodeData, VIDEO_MODELS]);
 
   // ── Edge drop → node picker ─────────────────────────────────────────────
   const [isConnecting, setIsConnecting] = useState(false);
@@ -1048,7 +1049,7 @@ export default function WorkflowCanvas() {
 
       // Video generator: prompt/startFrame/endFrame accept 1 each; resource accepts up to 3
       if (target?.type === "videoGeneratorNode") {
-        const videoModelId = (target.data?.videoModel as string | undefined) ?? "kling-3.0";
+        const videoModelId = (target.data?.videoModel as string | undefined) ?? "custom-video";
         const videoCfg = VIDEO_MODELS.find((m) => m.id === videoModelId);
         const isMotionControl = videoCfg?.apiInput.useMotionControl === true;
 
@@ -1091,7 +1092,7 @@ export default function WorkflowCanvas() {
 
       return true;
     },
-    [nodes, edges]
+    [nodes, edges, VIDEO_MODELS]
   );
 
   // Tag the ReactFlow container with the output handle type so CSS can filter compatible inputs
@@ -1152,7 +1153,7 @@ export default function WorkflowCanvas() {
   );
 
   const addToast   = useWorkflowStore((s) => s.addToast);
-  const kieKeySet  = useWorkflowStore((s) => s.kieKeySet);
+  const providerReady  = useWorkflowStore((s) => s.providerReady);
 
   const runAll = useCallback(async () => {
     const token = await getAccessToken();
@@ -1293,7 +1294,7 @@ export default function WorkflowCanvas() {
             headers: authHeaders(token),
             body: JSON.stringify({
               prompt,
-              model: node.data.model ?? "claude-sonnet-4-6",
+              model: node.data.model ?? "custom-text",
               systemPrompt: "You are an expert prompt engineer. Rewrite the user's prompt to be clearer, more specific, and more effective for an AI model. Output only the improved prompt — no explanation, no preamble, no quotes, no commentary of any kind.",
             }),
           });
@@ -1385,7 +1386,7 @@ export default function WorkflowCanvas() {
 
     push("Complete");
     setIsRunning(false);
-  }, [nodes, edges, updateNodeData, setIsRunning, debugMode, push, kieKeySet, addToast]);
+  }, [nodes, edges, updateNodeData, setIsRunning, debugMode, push, providerReady, addToast]);
 
   // ── Place a node at the viewport center (used by the empty-state picker) ────
   const addNodeAtCenter = useCallback((type: string) => {

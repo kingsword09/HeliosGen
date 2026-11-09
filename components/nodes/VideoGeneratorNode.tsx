@@ -10,7 +10,7 @@ import { useWorkflowStore, NodeData } from "@/lib/store";
 import { resolveInputs } from "@/lib/executor";
 import { useReadOnly } from "@/lib/readOnlyContext";
 import { ShieldBan } from "lucide-react";
-import { VIDEO_MODELS as VIDEO_MODEL_CFG } from "@/lib/modelConfig";
+import { useModelCatalog } from "@/lib/useModelCatalog";
 import { useGeneratingBorderAnimation } from "@/lib/useGeneratingBorderAnimation";
 import MissingInputWarning from "./MissingInputWarning";
 
@@ -158,6 +158,7 @@ function resolveMentions(
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function VideoGeneratorNode({ id, data, selected }: NodeProps<VideoGeneratorNodeType>) {
+  const { VIDEO_MODELS: VIDEO_MODEL_CFG } = useModelCatalog();
   const readOnly = useReadOnly();
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData);
   const updateNodeSize = useWorkflowStore((s) => s.updateNodeSize);
@@ -165,7 +166,7 @@ export default function VideoGeneratorNode({ id, data, selected }: NodeProps<Vid
   const remapTargetHandle = useWorkflowStore((s) => s.remapTargetHandle);
   const flashEdgeError = useWorkflowStore((s) => s.flashEdgeError);
   const addToast = useWorkflowStore((s) => s.addToast);
-  const kieKeySet = useWorkflowStore((s) => s.kieKeySet);
+  const providerReady = useWorkflowStore((s) => s.providerReady);
   const onNodesChange = useWorkflowStore((s) => s.onNodesChange);
   const onEdgesChange = useWorkflowStore((s) => s.onEdgesChange);
   const addNode = useWorkflowStore((s) => s.addNode);
@@ -368,13 +369,17 @@ export default function VideoGeneratorNode({ id, data, selected }: NodeProps<Vid
   }, [id, updateNodeData]);
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const videoModelId = (data.videoModel as string) ?? "kling-3.0";
+  const selectedModel = (data.videoModel as string) ?? "custom-video";
+  const videoModelId = VIDEO_MODEL_CFG.some((entry) => entry.id === selectedModel) ? selectedModel : VIDEO_MODEL_CFG[0].id;
   const cfg = VIDEO_MODEL_CFG.find((m) => m.id === videoModelId) ?? VIDEO_MODEL_CFG[0];
 
   const mode = (data.klingMode as string) ?? cfg.defaultMode ?? "";
-  const resolution = (data.grokResolution as string) ?? cfg.defaultResolution ?? "";
-  const duration = (data.duration as number) ?? cfg.defaultDuration;
-  const aspectRatio = (data.aspectRatio as string) ?? cfg.defaultRatio;
+  const storedResolution = (data.grokResolution as string) ?? cfg.defaultResolution ?? "";
+  const resolution = cfg.resolutions?.length && !cfg.resolutions.includes(storedResolution) ? cfg.defaultResolution ?? cfg.resolutions[0] : storedResolution;
+  const storedDuration = (data.duration as number) ?? cfg.defaultDuration;
+  const duration = cfg.durations.length && !cfg.durations.includes(storedDuration) ? cfg.defaultDuration : storedDuration;
+  const storedRatio = (data.aspectRatio as string) ?? cfg.defaultRatio;
+  const aspectRatio = cfg.ratios.includes(storedRatio) ? storedRatio : cfg.defaultRatio;
   const sound = (data.sound as boolean) ?? false;
   const seed = (data.seed as number | undefined) ?? 0;
   const status = (data.status as string) ?? "idle";
@@ -1069,7 +1074,7 @@ export default function VideoGeneratorNode({ id, data, selected }: NodeProps<Vid
       }
     }, 3000);
   }, [id, nodes, edges, prompt, sound, seed, duration, aspectRatio, videoModelId, veoMode, isVeo,
-    mode, resolution, cfg, debugMode, textEdge, updateNodeData, flashEdgeError, kieKeySet, addToast]);
+    mode, resolution, cfg, debugMode, textEdge, updateNodeData, flashEdgeError, providerReady, addToast]);
 
   const handleGenerateBatch = useCallback(() => {
     generate();
@@ -1735,7 +1740,7 @@ export default function VideoGeneratorNode({ id, data, selected }: NodeProps<Vid
             </div>
           ) : null;
 
-          const resPicker = cfg.resolutions ? (
+          const resPicker = cfg.resolutions?.length ? (
             <div className="relative shrink-0">
               <Pill onClick={() => { setGrokResOpen((o) => !o); setModelOpen(false); setRatioOpen(false); setDurOpen(false); setModeOpen(false); }}>
                 <span className="text-[11px] text-white/70">{resolution}</span>
@@ -1880,7 +1885,7 @@ export default function VideoGeneratorNode({ id, data, selected }: NodeProps<Vid
                 )}
 
                 {/* Ratio */}
-                {ratios.length > 0 && (
+                {ratios.some((ratio) => ratio !== "auto") && (
                   <div className="relative">
                     <Pill onClick={() => { setRatioOpen((o) => !o); setModelOpen(false); setDurOpen(false); setModeOpen(false); setGrokResOpen(false); }}>
                       <AspectIcon ratio={aspectRatio} />
@@ -1990,7 +1995,7 @@ export default function VideoGeneratorNode({ id, data, selected }: NodeProps<Vid
               )}
 
               {/* Generate button — always right */}
-              {!readOnly && <GenerateButton onClick={handleGenerateBatch} busy={animBusy} extracting={isExtractingFrames} disabled={promptOverLimit || kieKeySet === false || busy || isExtractingFrames || hasFailedMediaInput} warningMessages={hasFailedMediaInput ? ["A connected image/video input has no valid content"] : undefined} />}
+              {!readOnly && <GenerateButton onClick={handleGenerateBatch} busy={animBusy} extracting={isExtractingFrames} disabled={promptOverLimit || providerReady === false || busy || isExtractingFrames || hasFailedMediaInput} warningMessages={hasFailedMediaInput ? ["A connected image/video input has no valid content"] : undefined} />}
             </div>
           );
         })()}

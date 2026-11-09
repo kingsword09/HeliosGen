@@ -1,20 +1,13 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { getKieToken } from "@/lib/getKieToken";
+import { configuredProvider, providerChat } from "@/lib/customProvider";
 import { getAzureToken } from "@/lib/getAzureKey";
 
 interface Message {
   role: "user" | "assistant" | "system";
   content: string;
 }
-
-// Models that use OpenAI-compatible chat/completions endpoint
-const OPENAI_COMPAT_ENDPOINTS: Record<string, string> = {
-  "gemini-3-flash":  "https://api.kie.ai/gemini-3-flash/v1/chat/completions",
-  "gemini-3.1-pro":  "https://api.kie.ai/gemini-3.1-pro/v1/chat/completions",
-  "gpt-5-2":         "https://api.kie.ai/gpt-5-2/v1/chat/completions",
-};
 
 const AZURE_API_VERSION = "2024-04-01-preview";
 
@@ -29,7 +22,7 @@ export async function POST(req: NextRequest) {
     azureModelName?: string;
   };
 
-  const model = body.model ?? "claude-sonnet-4-6";
+  const model = body.model ?? "custom-text";
 
   let messages: Message[];
 
@@ -38,8 +31,7 @@ export async function POST(req: NextRequest) {
   } else if (body.prompt?.trim()) {
     messages = [];
     if (body.systemPrompt?.trim()) {
-      messages.push({ role: "user", content: body.systemPrompt.trim() });
-      messages.push({ role: "assistant", content: "Understood." });
+      messages.push({ role: "system", content: body.systemPrompt.trim() });
     }
     messages.push({ role: "user", content: body.prompt.trim() });
   } else {
@@ -112,63 +104,10 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── Kie.ai models ─────────────────────────────────────────────────────────
-  const apiKey = await getKieToken(req);
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "No Kie.ai API key configured. Add one in Settings." }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
-    );
+  // ── Custom Provider models ─────────────────────────────────────────────────────────
+  try {
+    return await providerChat(configuredProvider(model, "text"), model, messages, req.signal);
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : "Provider chat failed." }, { status: 502 });
   }
-
-  const openaiEndpoint = OPENAI_COMPAT_ENDPOINTS[model];
-
-  const upstream = openaiEndpoint
-    ? await fetch(openaiEndpoint, {
-        method: "POST",
-        cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: messages.map(m => ({
-            role: m.role,
-            content: [{ type: "text", text: m.content }],
-          })),
-          stream: true,
-        }),
-      })
-    : await fetch("https://api.kie.ai/claude/v1/messages", {
-        method: "POST",
-        cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages,
-          stream: true,
-          thinkingFlag: true,
-          max_tokens: 4096,
-        }),
-      });
-
-  if (!upstream.ok) {
-    const errText = await upstream.text();
-    return new Response(JSON.stringify({ error: errText }), {
-      status: upstream.status,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  return new Response(upstream.body, {
-    headers: {
-      "Content-Type":       "text/event-stream",
-      "Cache-Control":      "no-cache, no-transform",
-      "Connection":         "keep-alive",
-      "X-Accel-Buffering":  "no",
-    },
-  });
 }
