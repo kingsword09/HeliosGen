@@ -1,5 +1,5 @@
 export type ProviderModelKind = "image" | "text" | "video";
-export type ModelProtocol = "openai" | "gemini" | "anthropic" | "task";
+export type ModelProtocol = "openai" | "responses" | "gemini" | "anthropic" | "task";
 export interface ProviderModelConnection {
   protocol?: ModelProtocol;
   basePath?: string;
@@ -43,7 +43,7 @@ export interface ProviderModel {
 }
 
 export function modelProtocols(kind: ProviderModelKind): ModelProtocol[] {
-  return kind === "image" ? ["openai", "gemini", "task"] : kind === "text" ? ["openai", "gemini", "anthropic"] : ["task"];
+  return kind === "image" ? ["openai", "gemini", "task"] : kind === "text" ? ["openai", "responses", "gemini", "anthropic"] : ["task"];
 }
 
 export function validateModelConnection(value: unknown, kind: ProviderModelKind): ProviderModelConnection {

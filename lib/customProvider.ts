@@ -366,7 +366,9 @@ export async function providerChat(config: ProviderConfig, selected: string, mes
   if (definition && messages.some((message) => message.content.length > definition.promptMaxLength)) throw new Error(`This model supports at most ${definition.promptMaxLength} characters per message.`);
   let path = config.chatPath;
   let payload: JsonObject = { ...definition?.extraBody, model, messages, stream: true, ...(definition?.maxOutputTokens ? { [definition.parameterKeys.maxOutputTokens ?? "max_tokens"]: definition.maxOutputTokens } : {}) };
-  if (config.chatProtocol === "anthropic") {
+  if (config.chatProtocol === "responses") {
+    payload = { store: false, ...definition?.extraBody, model, input: messages, stream: true, ...(definition?.maxOutputTokens ? { [definition.parameterKeys.maxOutputTokens ?? "max_output_tokens"]: definition.maxOutputTokens } : {}) };
+  } else if (config.chatProtocol === "anthropic") {
     path = config.chatPath === "chat/completions" ? "messages" : config.chatPath;
     payload = { ...definition?.extraBody, model, max_tokens: definition?.maxOutputTokens ?? 1024, stream: true, system: messages.filter((message) => message.role === "system").map((message) => message.content).join("\n"), messages: messages.filter((message) => message.role !== "system") };
   } else if (config.chatProtocol === "gemini") {
@@ -410,6 +412,12 @@ export async function providerChat(config: ProviderConfig, selected: string, mes
     if (config.chatProtocol === "gemini") {
       const parts = json.candidates?.[0]?.content?.parts;
       if (Array.isArray(parts)) text = parts.filter((part: { thought?: boolean }) => !part.thought).map((part: { text?: string }) => part.text ?? "").join("");
+    } else if (config.chatProtocol === "responses") {
+      if (json.type === "error" || json.type === "response.failed" || json.type === "response.incomplete") {
+        const message = json.response?.error?.message ?? json.error?.message ?? json.message ?? json.response?.incomplete_details?.reason ?? "Responses request failed.";
+        throw new Error(`${config.name}: ${message}`);
+      }
+      if (json.type === "response.output_text.delta" || json.type === "response.refusal.delta") text = typeof json.delta === "string" ? json.delta : "";
     } else text = json.choices?.[0]?.delta?.content ?? "";
     if (text) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text } })}\n\n`));
   }

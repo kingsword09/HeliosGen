@@ -1,5 +1,12 @@
 export type ImageProtocol = "openai" | "gemini" | "task";
-export type ChatProtocol = "openai" | "gemini" | "anthropic";
+export type ChatProtocol = "openai" | "responses" | "gemini" | "anthropic";
+
+export const DEFAULT_CHAT_PATHS: Record<ChatProtocol, string> = {
+  openai: "chat/completions",
+  responses: "responses",
+  gemini: "models/{model}:streamGenerateContent?alt=sse",
+  anthropic: "messages",
+};
 
 export interface ProviderConfig {
   id: string;
@@ -99,7 +106,8 @@ export function validateProviderConfig(value: unknown): ProviderConfig {
     config.baseUrl = config.baseUrl.replace(/\/+$/, "");
   }
   if (!["openai", "gemini", "task"].includes(config.imageProtocol)) throw new Error("Unsupported image protocol.");
-  if (!["openai", "gemini", "anthropic"].includes(config.chatProtocol)) throw new Error("Unsupported chat protocol.");
+  if (!["openai", "responses", "gemini", "anthropic"].includes(config.chatProtocol)) throw new Error("Unsupported chat protocol.");
+  if (input.chatPath === undefined) config.chatPath = DEFAULT_CHAT_PATHS[config.chatProtocol];
   if (!["auto", "openai", "gemini", "anthropic"].includes(config.modelsProtocol)) throw new Error("Unsupported model-list protocol.");
   config.models = validateProviderModels(input.models ?? []);
   for (const [kind, field] of [["image", "imageModel"], ["text", "chatModel"], ["video", "videoModel"]] as const) {

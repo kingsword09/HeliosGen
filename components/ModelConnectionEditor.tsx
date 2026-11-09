@@ -59,6 +59,7 @@ export default function ModelConnectionEditor({ config, model, onChange, onProto
         {modelProtocols(model.kind).map((format) => <ToggleGroupItem key={format} value={format}>{MODEL_PROTOCOL_LABELS[format]}</ToggleGroupItem>)}
       </ToggleGroup>}
       <FieldDescription>{connection.protocol ? `${MODEL_PROTOCOL_LABELS[protocol]} · 仅此模型使用，不影响同一供应商的其他模型。` : `默认使用 ${MODEL_PROTOCOL_LABELS[inherited]}。同一供应商的模型接口不同时，在这里单独选择即可。`} 地址和 API Key 共用「{config.name}」，不用重复添加供应商。</FieldDescription>
+      {model.kind === "text" && <FieldDescription>OpenAI 兼容使用 Chat Completions；OpenAI Responses 使用 responses 路径，无需修改供应商地址或重复填写 Key。</FieldDescription>}
     </Field>
     {(connection.protocol || model.kind === "video") && prefixField}
     <p className="break-all text-xs text-muted-foreground" aria-label="实际请求地址">POST {preview}</p>

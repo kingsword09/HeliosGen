@@ -8,14 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from "@/components/ui/separator";
-import { DEFAULT_PROVIDER_CONFIG, validateProviderConfig, withProviderModels, type ProviderConfig, type PublicProvider, type PublicProviderSettings } from "@/lib/providerConfig";
+import { DEFAULT_CHAT_PATHS, DEFAULT_PROVIDER_CONFIG, validateProviderConfig, withProviderModels, type ProviderConfig, type PublicProvider, type PublicProviderSettings } from "@/lib/providerConfig";
 import type { ProviderModel, ProviderModelKind } from "@/lib/providerModelConfig";
 import ProviderModelsPanel from "@/components/ProviderModelsPanel";
 import { setModelCatalog } from "@/lib/useModelCatalog";
 import { useWorkflowStore } from "@/lib/store";
 
 const BASIC_FIELDS = ["id", "name", "baseUrl", "imageModel", "chatModel", "videoModel", "models"];
-const CONNECTIONS = [{ id: "openai", name: "OpenAI 兼容" }, { id: "gemini", name: "Gemini 原生" }, { id: "anthropic", name: "Anthropic 原生" }, { id: "custom", name: "异步任务" }] as const;
+const CONNECTIONS = [{ id: "openai", name: "OpenAI 兼容" }, { id: "responses", name: "OpenAI Responses" }, { id: "gemini", name: "Gemini 原生" }, { id: "anthropic", name: "Anthropic 原生" }, { id: "custom", name: "异步任务" }] as const;
 const KIND_LABELS = { image: "图片", video: "视频", text: "对话" };
 type Connection = (typeof CONNECTIONS)[number]["id"];
 
@@ -29,6 +29,7 @@ function connectionType(config: ProviderConfig, kind?: ProviderModelKind): Conne
   if (kind === "video") return "custom";
   if (config.imageProtocol === "task") return "custom";
   if (config.imageProtocol === "gemini" && config.chatProtocol === "gemini") return "gemini";
+  if (config.chatProtocol === "responses") return "responses";
   if (config.chatProtocol === "anthropic") return "anthropic";
   return config.imageProtocol === "openai" && config.chatProtocol === "openai" ? "openai" : "custom";
 }
@@ -112,7 +113,10 @@ export default function CustomProviderPanel({ onReadyChange, modelKind, onOpenMo
     if (modelKind) {
       const next = { ...config };
       if (modelKind === "image") next.imageProtocol = value === "custom" ? "task" : value as ProviderConfig["imageProtocol"];
-      if (modelKind === "text") next.chatProtocol = value as ProviderConfig["chatProtocol"];
+      if (modelKind === "text") {
+        next.chatProtocol = value as ProviderConfig["chatProtocol"];
+        if (value !== connection && Object.values(DEFAULT_CHAT_PATHS).includes(config.chatPath)) next.chatPath = DEFAULT_CHAT_PATHS[next.chatProtocol];
+      }
       if (value !== connection && next.authPrefix === "" && ((connection === "gemini" && next.authHeader === "x-goog-api-key") || (connection === "anthropic" && next.authHeader === "x-api-key"))) { next.authHeader = "Authorization"; next.authPrefix = "Bearer "; }
       const changedModels = config.models.filter((model) => !model.connection?.protocol && model.kind === modelKind);
       if (changedModels.length && value !== connection && !window.confirm(`更改默认接口会影响 ${changedModels.length} 个跟随供应商的${KIND_LABELS[modelKind]}模型；独立接口的模型不受影响。已有参数需在模型编辑页重新确认，确定继续吗？`)) return;
@@ -124,8 +128,8 @@ export default function CustomProviderPanel({ onReadyChange, modelKind, onOpenMo
       setConfig(next); setAdvanced(advancedSettings(next)); changed(); return;
     }
     const next: ProviderConfig = { ...config, imageProtocol: value === "gemini" ? "gemini" : "openai", chatProtocol: value,
-      authHeader: value === "gemini" ? "x-goog-api-key" : value === "anthropic" ? "x-api-key" : "Authorization", authPrefix: value === "openai" ? "Bearer " : "",
-      modelsProtocol: value, modelsPath: "models", modelsResultPath: "", imagesPath: "images/generations", editsPath: "images/edits", chatPath: value === "anthropic" ? "messages" : "chat/completions" };
+      authHeader: value === "gemini" ? "x-goog-api-key" : value === "anthropic" ? "x-api-key" : "Authorization", authPrefix: value === "openai" || value === "responses" ? "Bearer " : "",
+      modelsProtocol: value === "responses" ? "openai" : value, modelsPath: "models", modelsResultPath: "", imagesPath: "images/generations", editsPath: "images/edits", chatPath: DEFAULT_CHAT_PATHS[value] };
     setConfig(next); setAdvanced(advancedSettings(next)); changed();
   }
 
@@ -230,7 +234,7 @@ export default function CustomProviderPanel({ onReadyChange, modelKind, onOpenMo
             {editingConnection && <form onSubmit={(event) => { event.preventDefault(); void persist().catch(() => {}); }}><FieldSet disabled={saving}>
               <FieldLegend>连接设置</FieldLegend><FieldGroup>
                 <Field><FieldLabel htmlFor={`${id}-name`}>供应商名称</FieldLabel><Input id={`${id}-name`} value={config.name} onChange={(event) => { setConfig({ ...config, name: event.target.value }); changed(); }} placeholder="例如：我的 Gemini、公司中转；留空使用地址" /></Field>
-                {modelKind !== "video" && <Field><FieldLabel id={`${id}-connection`}>默认{modelKind ? KIND_LABELS[modelKind] : ""}接口方式</FieldLabel><ToggleGroup aria-labelledby={`${id}-connection`} value={[connection]} onValueChange={(values) => { if (values[0]) changeConnection(values[0] as Connection); }} variant="outline" size="sm" className="flex-wrap">{CONNECTIONS.filter((entry) => !modelKind || (modelKind === "image" ? entry.id !== "anthropic" : entry.id !== "custom")).map((entry) => <ToggleGroupItem key={entry.id} value={entry.id}>{entry.name}</ToggleGroupItem>)}</ToggleGroup><FieldDescription>这只是新增模型的默认接口，不限制供应商只能使用一种格式。模型支持其他格式时，在模型编辑中覆盖即可。</FieldDescription></Field>}
+                {modelKind !== "video" && <Field><FieldLabel id={`${id}-connection`}>默认{modelKind ? KIND_LABELS[modelKind] : ""}接口方式</FieldLabel><ToggleGroup aria-labelledby={`${id}-connection`} value={[connection]} onValueChange={(values) => { if (values[0]) changeConnection(values[0] as Connection); }} variant="outline" size="sm" className="flex-wrap">{CONNECTIONS.filter((entry) => !modelKind || (modelKind === "image" ? entry.id !== "anthropic" && entry.id !== "responses" : entry.id !== "custom")).map((entry) => <ToggleGroupItem key={entry.id} value={entry.id}>{entry.name}</ToggleGroupItem>)}</ToggleGroup><FieldDescription>这只是新增模型的默认接口，不限制供应商只能使用一种格式。模型支持其他格式时，在模型编辑中覆盖即可。{modelKind !== "image" && "对话的 OpenAI 兼容使用 Chat Completions；Responses 是独立接口。"}</FieldDescription></Field>}
                 <Field><FieldLabel htmlFor={`${id}-base`}>API 地址（必填）</FieldLabel><Input id={`${id}-base`} type="url" required value={config.baseUrl} onChange={(event) => { setConfig({ ...config, baseUrl: event.target.value }); changed(); }} placeholder={connection === "gemini" ? "https://generativelanguage.googleapis.com/v1beta" : connection === "anthropic" ? "https://api.anthropic.com/v1" : "https://your-provider.example/v1"} /></Field>
                 <Field><FieldLabel htmlFor={`${id}-key`}>API Key</FieldLabel><Input id={`${id}-key`} type="password" autoComplete="new-password" value={apiKey} onChange={(event) => { setApiKey(event.target.value); changed(); }} placeholder={hasKey && !clearKey ? "已保存，留空保留原 Key" : "本地免鉴权服务可留空"} /><FieldDescription>Key 只存储在本地服务端，不回传明文。</FieldDescription>{hasKey && <Button type="button" variant="outline" size="sm" onClick={() => { setClearKey(!clearKey); changed(); }}>{clearKey ? "取消清除 Key" : "清除已保存的 Key"}</Button>}</Field>
                 <details><summary className="cursor-pointer text-sm">高级连接设置（可选）</summary><FieldGroup className="mt-4"><Field><FieldLabel htmlFor={`${id}-advanced`}>协议、路径与请求模板</FieldLabel><Textarea id={`${id}-advanced`} value={advanced} onChange={(event) => { setAdvanced(event.target.value); changed(); }} rows={10} /><FieldDescription>标准接口不需要修改。自定义异步接口按服务商文档设置创建、轮询路径和响应字段。</FieldDescription></Field></FieldGroup></details>

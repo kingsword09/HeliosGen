@@ -1,11 +1,11 @@
-import { DEFAULT_PROVIDER_CONFIG, getProviderModelDefinition, type ProviderConfig } from "./providerConfig";
+import { DEFAULT_CHAT_PATHS, DEFAULT_PROVIDER_CONFIG, getProviderModelDefinition, type ChatProtocol, type ProviderConfig } from "./providerConfig";
 import type { ModelProtocol, ProviderModel, ProviderModelConnection, ProviderModelKind } from "./providerModelConfig";
 
 export interface EffectiveProviderConfig extends ProviderConfig {
   requestConnection?: ProviderModelConnection;
 }
 
-export const MODEL_PROTOCOL_LABELS: Record<ModelProtocol, string> = { openai: "OpenAI 兼容", gemini: "Gemini 原生", anthropic: "Anthropic 原生", task: "异步任务" };
+export const MODEL_PROTOCOL_LABELS: Record<ModelProtocol, string> = { openai: "OpenAI 兼容", responses: "OpenAI Responses", gemini: "Gemini 原生", anthropic: "Anthropic 原生", task: "异步任务" };
 
 export function providerModelProtocol(config: ProviderConfig, model: Pick<ProviderModel, "kind" | "connection">): ModelProtocol {
   return model.connection?.protocol ?? (model.kind === "image" ? config.imageProtocol : model.kind === "text" ? config.chatProtocol : "task");
@@ -28,7 +28,7 @@ export function resolveModelConnection(config: ProviderConfig, model: ProviderMo
     next.imageBody = connection?.body !== undefined ? connection.body : changed ? null : config.imageBody;
   } else if (model.kind === "text") {
     next.chatProtocol = protocol as ProviderConfig["chatProtocol"];
-    next.chatPath = connection?.generatePath ?? (protocol === "gemini" ? "models/{model}:streamGenerateContent?alt=sse" : changed ? protocol === "anthropic" ? "messages" : DEFAULT_PROVIDER_CONFIG.chatPath : config.chatPath);
+    next.chatPath = connection?.generatePath ?? (protocol === "gemini" || changed ? DEFAULT_CHAT_PATHS[protocol as ChatProtocol] : config.chatPath);
   } else {
     next.videoPath = connection?.generatePath ?? config.videoPath;
     next.videoBody = connection?.body !== undefined ? connection.body : config.videoBody;
