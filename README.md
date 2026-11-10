@@ -42,6 +42,7 @@ The app is **not code-signed** yet:
 1. Launch HeliosGen.
 2. Open **Settings → 服务商**, enter your API URL and optional API key, and click **保存连接**. OpenAI-compatible format is selected by default; choose a native format only when the provider requires it.
 3. Open **图片模型**, **视频模型**, or **对话模型** and add only the models you need. One model in one category is enough to get started.
+4. Use the **Light / Dark** button at the bottom of the sidebar to switch themes. Your choice is remembered on this device; dark mode is the default.
 
 Everything stays on your machine. Generations, uploads, folders, workflows and
 settings live in a local database; media is saved to a local folder:
@@ -54,7 +55,69 @@ settings live in a local database; media is saved to a local folder:
 
 Delete that folder to reset the app.
 
+### Shared assets and moving to another computer
+
+- **Assets** automatically indexes uploads and completed image/video generations,
+  including multiple outputs. Search by name, prompt, model or tags; rename,
+  favorite, download, or remove an item from the library without deleting its
+  original file or existing workflow references.
+- Open asset details to add an image to the generation composer or Chat, or add
+  an image/video input node to a new or existing Workflow. Existing nodes and
+  connections remain intact. Media selectors across the app share an **素材库** tab.
+- Chat image attachments are converted for OpenAI Chat Completions, Responses,
+  Anthropic, Gemini and Azure. Select a model that supports vision. PNG, JPEG,
+  WebP and GIF are supported; video attachments are not. Limits: 16 images per
+  message, 32 in the conversation context, 8 MB each and 32 MB total.
+- **Settings → 导入 / 导出** exports versioned JSON through a native save dialog
+  in the desktop app: choose the directory and filename. The export includes
+  providers, model IDs, parameter presets/mappings, default provider selections,
+  Azure deployments and theme. API keys are excluded by default; opt-in key
+  exports contain plaintext secrets and are saved with private file permissions.
+- On the other computer, preview the file and explicitly choose merge or replace.
+  Merge preserves unrelated providers and current defaults, replacing same-ID
+  configurations. Missing exported keys preserve existing same-ID local keys;
+  new providers need keys entered separately. Replace removes providers absent
+  from the file and may invalidate their references in old workflows.
+- Configuration export does **not** contain media, conversations, workflows,
+  Codex OAuth sessions, Agent connection tokens or CLI/Skill installation state.
+  Use the existing Workflow ZIP export to move a workflow together with its
+  referenced files. Missing or failed ZIP asset imports now abort instead of
+  silently creating a broken workflow.
+
 ---
+
+## Model Discovery And Image Sizes
+
+Providers with any saved models are not automatically queried for `/models` when
+opening model settings. The list endpoint is optional: pull manually or add a
+model by its API ID. Capabilities come from the local, protocol-specific presets,
+not the model listing. GPT Image 2 and 2.5 automatically offer seven exact image
+ratios, plus automatic sizing. Restricted compatible providers can choose the
+standard-size preset. GPT Image 2.6 defaults to standard sizes; its optional
+**扩展比例（需服务商支持）** preset must only be enabled when the provider supports
+custom `size` for ordinary images. The editor shows the actual size mappings.
+For example, 16:9 uses `1536x864`, never `1536x1024`. Existing custom mappings are
+preserved, upstream model IDs are unchanged, and unsupported sizes are not
+silently substituted or automatically resubmitted.
+
+Official sizing reference: https://developers.openai.com/api/reference/resources/images/methods/generate
+
+## External Agent Sources
+
+Settings → 外部互联 manages connections and shows a compact task summary with links
+to the existing right-hand message center, not a duplicate history list. Requests
+and in-progress jobs use **待处理**; completed, failed and rejected jobs use
+**已处理**, with individual removal and bulk cleanup that preserve jobs and images.
+Both views share live state, so removed messages do not reappear in settings.
+Connection names are authorization nicknames, not detected application identities.
+The inbox and task details show the connection and request source separately.
+CLI requests can include `source.name` (for example
+`codex`, `claude-code`, `opencode`, or `pi`); the bundled Skill asks known agents to
+provide their name. Rex session/block context is attached independently, even for
+a named agent. Rex by itself identifies a terminal environment, not the agent
+running inside it. Missing agent names display as unidentified rather than using
+the connection nickname. Source metadata is informational, not authenticated;
+connection credentials still determine permissions and automatic approval.
 
 # 📸 Screenshots
 ## ✨ Simple Image & Video Generation
@@ -226,9 +289,30 @@ are migrated into the model list without requiring re-entry.
 
 ### Model parameter compatibility
 
-New models use conservative defaults: only the required prompt/model request
-fields are sent (plus required protocol fields), with optional generation
-parameters off. Expand **支持的参数** and enable only what the provider documents:
+Known model IDs automatically load protocol-specific parameter presets when
+added, pulled from a provider, edited, or loaded after restart. Existing untouched
+empty configurations are upgraded too; manually configured parameters remain
+custom and are never overwritten. UI selectors and external Agent model discovery
+use the same resolved capabilities as the Go generation service.
+
+**模型参数来源** defaults to automatic exact-ID matching. For a provider alias,
+choose the original model's preset without changing the actual upstream model ID.
+Unknown IDs do not inherit capabilities by substring or by display name. Choose
+**自定义参数** to retain overrides or explicitly disable supported parameters.
+Changing protocols refreshes automatic presets, while custom parameters still
+require explicit confirmation before using a different protocol.
+
+Presets cover GPT Image families, native Gemini image models, and the existing
+known task-model catalog. OpenAI GPT Image 2.6 defaults to documented standard
+sizes (`auto`, 1024×1024, 1536×1024, 1024×1536), quality (`auto`, `low`, `medium`,
+`high`), and up to 16 references. Arbitrary 16:9 sizing is not assumed for models
+whose current API documentation only establishes standard sizes. OpenAI preset
+sources: [Image generation](https://developers.openai.com/api/docs/guides/image-generation),
+[Generate image](https://developers.openai.com/api/reference/resources/images/methods/generate),
+and [Edit image](https://developers.openai.com/api/reference/resources/images/methods/edit).
+
+For unknown/custom models, only required fields are sent until you configure
+documented optional capabilities under **支持的参数**:
 
 - Images: exact pixel-size mappings or native aspect ratios, quality/output-size
   values, and maximum reference-image count. OpenAI image sizes must be mapped
@@ -381,8 +465,8 @@ More models are coming.
 | Layer | Technology |
 |---|---|
 | Desktop shell | MyGo (Go + system webview) |
-| App | Next.js + React + TypeScript (bundled Node sidecar) |
-| Database | SQLite (local) |
+| App | Static React + TypeScript (Vite), in-process Go HTTP API |
+| Database | SQLite (pure-Go driver, existing local database) |
 | Storage | Local disk |
 | AI Backend | Configurable custom providers / Azure Foundry / Codex CLI |
 
@@ -434,10 +518,12 @@ In **Settings → 图片模型 → 内置模型与其他后端**, set GPT Image 
 
 # 🛠️ Build from source
 
-The desktop shell uses **MyGo**, not Tauri. The Next.js/React frontend and local
-Node server are preserved, so you can also run the project in a browser.
+The desktop shell uses **MyGo**, not Tauri. The existing React interface is built
+as static assets and the local API runs in Go, inside the native executable.
+Installed packages contain no Node, Next.js server, Sharp or `node_modules`.
+The same UI can run in a browser with the Go server.
 
-Prerequisites: **Node.js 22+**, **pnpm 9**, **Go 1.27.3+**, and the system webview.
+Build prerequisites: **Node.js 22.12+**, **pnpm 9**, **Go 1.27.3+**, and the system webview.
 Go can download the pinned toolchain automatically. Linux needs GTK 3 and
 WebKitGTK 4.1; Windows needs WebView2 Runtime. Video tools need `ffmpeg`/`ffprobe`.
 
@@ -454,15 +540,23 @@ For a packaged build:
 pnpm desktop:build
 ```
 
-Artifacts are written under `build/`. Build on the target OS/architecture because
-the bundled Node and Sharp dependencies are platform-specific. MyGo settings
-are in `mygo.json`; the shell is in `desktop/main.go`. No Rust toolchain is needed.
+Artifacts are written under `build/go/`. The checked macOS arm64 package is
+approximately **20.5 MiB** (`.app`) / **9.8 MiB** (DMG), down from approximately
+400.6 MiB. No Node installation is required to run it. MyGo settings are in
+`mygo.json`; the shell is in `desktop/` and APIs are in `internal/server/`.
+No Rust toolchain is needed. Validate Windows/Linux on their target systems.
 
 For browser-only development:
 
 ```bash
 pnpm dev
 ```
+
+This starts Vite on port 3000 and Go on port 41731. The former Next.js backend
+remains available with `pnpm legacy:dev` for compatibility checks; it is not
+packaged. `pnpm desktop:check-go` runs isolated parity checks against a staged
+legacy server. Existing data paths and browser storage keys are retained, and
+the first Go migration snapshots an existing SQLite database automatically.
 
 All provider configuration is available through the existing **Settings** UI.
 See `DESKTOP.md` for data-directory migration, packaging, signing, and release

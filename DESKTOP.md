@@ -2,30 +2,37 @@
 
 ## Architecture
 
-MyGo hosts the existing Next.js/React application in the operating system's
-webview. The Go shell starts a bundled Node runtime and the standalone Next.js
-server, opens a 1400×900 window, and stops the server when the app exits.
+MyGo displays the existing React interface in the system webview. Vite produces
+static HTML/CSS/JavaScript; the native executable starts the Go HTTP backend
+in-process. The installed application contains no Node runtime, Next.js server,
+`node_modules`, Sharp native library or application source maps.
 
 ```text
-MyGo window → loopback HTTP → bundled Node / Next.js → local SQLite + media
+MyGo window → loopback HTTP → Go API → existing SQLite database + local media
+                       └── static React frontend
 ```
 
-The shell lives in `desktop/main.go`; packaging is configured by `mygo.json`.
-There is no Rust or Tauri dependency. The existing canvas, galleries, chat,
-settings, external-link handling, and browser file drops stay in React.
+The shell is in `desktop/`, APIs are in `internal/server/`, and the static entry
+and navigation compatibility layer are in `frontend/`. Packaging uses `mygo.json`.
+The existing canvas, galleries, chat, provider/model editors, theme controls,
+import/export, file drops and other React components remain in use.
 
 ## Prerequisites
 
-- Go 1.27.3 or later; Go's automatic toolchain download can obtain the pinned
-  version when running from an older supported Go installation.
-- Node.js 22 or later, and pnpm 9.
-- The system webview: WKWebView on macOS; WebView2 Runtime on Windows;
-  GTK 3 and WebKitGTK 4.1 on Linux.
-- Bun is optional when using `mygo.json` and the Go CLI.
-- `ffmpeg` / `ffprobe` for video metadata processing, trim, and frame extraction.
-- Codex and `codex-imagegen` only if enabling the optional Codex image backend.
+Build/development only:
 
-Install JavaScript and Go dependencies:
+- Go 1.27.3 or later; Go can obtain the pinned toolchain automatically.
+- Node.js 22.12+ and pnpm 9; JavaScript dependencies are not installed at runtime.
+- macOS packaging requires macOS; signing/notarization requires your credentials.
+
+Runtime:
+
+- WKWebView on macOS; WebView2 on Windows; GTK 3 and WebKitGTK 4.1 on Linux.
+- `ffmpeg` and `ffprobe` on PATH for video metadata removal, trimming and frames,
+  exactly as before. The shell discovers the login-shell PATH.
+- `codex` and `codex-imagegen` only when enabling the optional Codex backend.
+- PNG/JPEG/WebP/GIF/TIFF/BMP processing uses Go. Other image formats use macOS
+  `sips`, with `ffmpeg` as a fallback; support depends on those system decoders.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -39,10 +46,13 @@ pnpm desktop:doctor
 pnpm desktop:dev
 ```
 
-MyGo launches the Next.js development server on `http://127.0.0.1:3000` using
-`scripts/desktop/dev.mjs`, then opens the native window. React updates hot-reload;
-MyGo rebuilds the shell when Go files change. Close the app or press Ctrl+C to
-stop development. The browser-only app is still available with `pnpm dev`.
+`scripts/desktop/dev-go.mjs` compiles a development Go server and starts it on
+127.0.0.1:41731, then starts Vite on 127.0.0.1:3000. Vite proxies `/api` and
+`/generated` to Go. MyGo opens the Vite origin. `pnpm dev` runs the same services
+without a native window; close the app or press Ctrl+C to stop them.
+
+Development retains `data/` and `public/generated/`. `HELIOS_DATA_DIR` and
+`HELIOS_MEDIA_DIR` override those paths. Do not point tests at production data.
 
 ## Production build
 
@@ -50,42 +60,40 @@ stop development. The browser-only app is still available with `pnpm dev`.
 pnpm desktop:build
 ```
 
-The build checks that `package.json` and `mygo.json` versions agree, builds
-Next.js in standalone mode, and stages a clean production dependency tree and
-portable Node runtime in `desktop/resources/server/`. MyGo packages these
-resources and the Go shell. Artifacts are under `build/`, grouped by platform.
+The build checks the application versions and synchronized model defaults, builds
+the static frontend, compiles Go and packages/signs the MyGo executable. Only
+`desktop/resources/frontend/` ships as frontend resources. Artifacts are under
+`build/go/<platform>-<architecture>/`; previous packages under `build/` are not
+overwritten by the new default output directory.
 
-The shell can be cross-compiled, but this project's server staging bundles
-host-platform Node and Sharp binaries. Build packages on the OS and architecture
-you intend to distribute unless you also provide matching server resources.
-Do not ship a different-target shell with host-platform resources.
+The checked macOS arm64 1.2.1 build is approximately 20.5 MiB for the `.app` and
+9.8 MiB for the DMG, compared with approximately 400.6 MiB for the earlier Node
+package. Development `node_modules` and old build trees can still occupy disk
+space; they are not part of the installed Go application.
 
-The packaged server uses loopback port 41730 whenever available, preserving the
-existing origin. If that port is occupied, it chooses a free loopback port.
-A health check verifies that the local server is HeliosGen before opening it.
-A parent-process guard exits the server if the desktop shell crashes.
+The HTTP listener stays open from allocation through serving, preferring port
+41730 to preserve browser storage. If occupied, it selects another loopback
+port, whose browser-only storage is necessarily a different origin. MyGo keeps
+the same application identity, browser profile and single-instance behavior.
+No sidecar process remains alive after the native app exits or crashes.
 
-## Provider configuration
+For a static browser deployment with a Go server:
 
-No `.env` file is necessary. Open **Settings → API Keys → Custom Providers**:
+```sh
+pnpm build
+pnpm start
+```
 
-1. Click **Add Provider** and give it a name.
-2. Enter Base URL, optional API key, protocols, and image/chat/video model IDs.
-3. Click **Save Provider**.
-4. Choose the saved provider and click **Use This Provider** to switch.
+## Data and compatibility
 
-Each provider has independent credentials, model mappings, and endpoint settings.
-Switching changes new requests; running asynchronous jobs keep their original
-provider ID and credentials. The first provider is activated automatically;
-removing the active provider activates another saved provider when available.
+### External agents / Rex
 
-The form follows the existing dark settings UI. Advanced endpoint paths,
-asynchronous response paths, optional reference uploads, and payload templates
-are configured in the same interface. See README's custom-provider contract.
+Settings → 外部互联 provides an opt-in local image-tool connection, per-task
+approval, connection revocation and explicit Go CLI/Agent Skill installation.
+See `docs/REX-INTEGRATION.md` for setup, capabilities and trust boundaries.
+The bundled desktop executable handles `cli` before starting a native window;
+no additional Node runtime or separately bundled helper is required.
 
-## Local data and migration
-
-The Go shell deliberately preserves the existing application data directory:
 
 | OS | Directory |
 | --- | --- |
@@ -93,26 +101,77 @@ The Go shell deliberately preserves the existing application data directory:
 | Windows | `%APPDATA%\cash.sdd.helios.desktop\` |
 | Linux | `$XDG_DATA_HOME/cash.sdd.helios.desktop/`, default `~/.local/share/cash.sdd.helios.desktop/` |
 
-SQLite stores workflows, generation history, folders, and provider settings.
-Media is under `generated/`; desktop server logs are `desktop-server.log`.
-Existing single-provider settings are migrated to a provider registry on first
-load. Keys remain on the local server and are not returned to browser clients.
-The new webview's browser profile may differ from the previous desktop shell;
-SQLite data is retained, but browser-only preferences may need to be reselected.
+Go opens the existing `guest.db` using pure-Go SQLite and preserves its tables,
+JSON fields and `/generated/...` URLs. Before the first Go migration of an
+existing database, it creates `guest-before-go-<timestamp>.db` using SQLite's
+consistent snapshot operation. Legacy `guest-db.json` and `guest-spaces.json`
+imports remain idempotent. `.job-store.json` and `.codex-login-store.json` retain
+their formats. Pending provider tasks resume with their original paths/settings
+and the currently saved key; interrupted synchronous requests report an error
+instead of remaining pending forever.
+
+Provider keys remain local and never appear in public configuration responses.
+The existing settings UI supports OpenAI Chat/Responses, Anthropic, Gemini,
+custom async image/video APIs, per-model paths/authentication, parameter mappings,
+reference uploads, Azure and optional Codex. Chat also accepts shared-library
+image attachments for vision-capable models, without adding a tool/reasoning UI.
+
+### Shared assets and portable configuration
+
+Assets uses the local `shared_assets` table for searchable metadata, tags,
+favorites and non-destructive removals. Uploads and all completed generation
+outputs are indexed incrementally with URL deduplication. Files remain in the
+same media directory and are reused by gallery references, Chat and Workflow.
+Image input nodes persist durable `/generated/...` URLs; empty workflows also
+survive database sync. Sync waits for the initial database read before writing,
+and direct workflow URLs wait for it before validating the workflow ID. Workflow
+ZIP imports validate format/version, node/edge
+IDs and referenced files before uploading; upload failure does not create a
+workflow containing broken bundled paths.
+
+Settings → 导入 / 导出 backs up provider/model configurations and a whitelist of
+UI/Azure preferences, not media or local logins. Desktop export invokes MyGo's
+native Save dialog so the user chooses the destination; the server never accepts
+an arbitrary HTTP-supplied filesystem path. Files are written atomically with
+0600 permissions. Keys are opt-in plaintext; keep those backups private. Import
+is size-limited, previews counts/conflicts without changing configuration and
+commits merge/replace changes transactionally. Invalid imports leave the registry
+unchanged. Workflow and asset backups remain separate from configuration JSON.
+
+`pnpm desktop:check-shared` verifies isolated library indexing/removal/restart,
+configuration round trips/key safety/native-save cancellation/rollback,
+multimodal protocol conversion and workflow persistence/ZIP round trips.
+`node scripts/desktop/shared-ui-fixture.mjs` starts a temporary mock-only app for
+manual UI checks; stop it with SIGINT/SIGTERM to remove its temporary data. Never
+use production credentials or the production application origin for these tests.
+
+## Validation and legacy reference
+
+```sh
+pnpm desktop:legacy-server
+pnpm desktop:check-go
+pnpm desktop:check-shared
+go test ./...
+go vet ./...
+pnpm exec tsc --noEmit --incremental false
+```
+
+The legacy Next implementation and staging scripts remain for differential
+validation, not production packaging. `desktop:check-go` creates temporary data
+directories and mock network/CLI services; it never reads production credentials
+or makes paid generation requests. The legacy server stage must exist first.
+`legacy:dev`, `legacy:build` and `legacy:start` retain the former web commands.
+
+`scripts/desktop/check-go-media.mjs` tests real video/image processing against an
+already-running isolated Go server and a real ffmpeg/ffprobe directory. Never
+run it against the production origin. See `docs/GO-MIGRATION.md` for coverage and
+the distinction between mocked services and real media validation.
 
 ## Signing and releases
 
-Configure MyGo's platform signing fields in `mygo.json`. For macOS, set
-`macos.signingIdentity` and optionally `macos.notarize.keychainProfile` for an
-existing notarization credential profile. The Node helper uses
-`desktop/entitlements.plist` through `macos.helperEntitlements`; native Sharp
-resources must also be signed. `APPLE_SIGNING_IDENTITY` makes the staging script
-sign bundled Node and native modules before MyGo packages the app.
-
-Unsigned local macOS bundles may require Finder → Open, or `xattr -cr` on the
-built app. Real distribution signing/notarization needs your own credentials.
-Windows and Linux packages also require validation on those platforms.
-
-Release versions must match in `package.json` and `mygo.json`. Run
-`pnpm desktop:check-version`, then tag the matching release. The in-app update
-banner links to the project's release page; it does not install updates itself.
+Versions must match in `package.json` and `mygo.json`. Local macOS builds are
+ad-hoc signed. Configure `macos.signingIdentity` and optionally
+`macos.notarize.keychainProfile` for distribution signing/notarization. There
+are no Node/Sharp helpers to sign. The update banner links to releases and does
+not install updates automatically. Windows/Linux builds require target-system
+validation before distribution; macOS arm64 is the package validated here.
