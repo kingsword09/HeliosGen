@@ -13,11 +13,11 @@ const VIDEO_MODELS = [
 ];
 
 const STATUS_RING: Record<string, string> = {
-  idle: "border-gray-700",
-  pending: "border-gray-500",
-  running: "border-yellow-500",
-  done: "border-emerald-500",
-  error: "border-red-500",
+  idle: "border-border",
+  pending: "border-muted-foreground",
+  running: "border-status-warning",
+  done: "border-status-success",
+  error: "border-destructive",
 };
 
 export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) {
@@ -31,7 +31,7 @@ export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) 
   return (
     <div
       ref={cardRef}
-      className={`node-card bg-gray-900 border-2 rounded-xl w-72 shadow-lg ${STATUS_RING[status]} ${busy ? "node-generating" : ""}`}
+      className={`node-card bg-card border-2 rounded-xl w-72 shadow-lg ${STATUS_RING[status]} ${busy ? "node-generating" : ""}`}
     >
       {/* Input handles */}
       <Handle
@@ -39,29 +39,29 @@ export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) 
         position={Position.Left}
         id="prompt"
         style={{ top: "35%" }}
-        className="!w-3 !h-3 !bg-indigo-400 !border-2 !border-indigo-600"
+        className="!w-3 !h-3 !bg-node-purple !border-2 !border-node-purple"
       />
       <Handle
         type="target"
         position={Position.Left}
         id="image"
         style={{ top: "65%" }}
-        className="!w-3 !h-3 !bg-blue-400 !border-2 !border-blue-600"
+        className="!w-3 !h-3 !bg-node-blue !border-2 !border-node-blue"
       />
 
       <div className="overflow-hidden rounded-[7px]">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-rose-900/60 border-b border-rose-700/50">
-        <span className="text-rose-300 text-sm">🎬</span>
-        <span className="text-rose-200 font-semibold text-sm">Video Generation</span>
+      <div className="flex items-center gap-2 px-3 py-2 bg-node-pink/15 border-b border-node-pink/30">
+        <span className="text-node-pink text-sm">🎬</span>
+        <span className="text-node-pink font-semibold text-sm">Video Generation</span>
         {status === "running" && (
-          <span className="ml-auto text-yellow-400 text-xs animate-pulse">Generating…</span>
+          <span className="ml-auto text-status-warning text-xs animate-pulse">Generating…</span>
         )}
         {status === "done" && (
-          <span className="ml-auto text-emerald-400 text-xs">Done</span>
+          <span className="ml-auto text-status-success text-xs">Done</span>
         )}
         {status === "error" && (
-          <span className="ml-auto text-red-400 text-xs">Error</span>
+          <span className="ml-auto text-destructive text-xs">Error</span>
         )}
       </div>
 
@@ -69,9 +69,9 @@ export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) 
       <div className="p-3 space-y-2">
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="text-gray-400 text-xs mb-1 block">Model</label>
+            <label className="text-muted-foreground text-xs mb-1 block">Model</label>
             <select
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg text-gray-100 text-xs px-2 py-1.5 focus:outline-none focus:border-rose-500"
+              className="w-full bg-muted border border-input rounded-lg text-foreground text-xs px-2 py-1.5 focus:outline-none focus:border-node-pink"
               value={data.model ?? "wan-t2v"}
               onChange={(e) => updateNodeData(id, { model: e.target.value })}
             >
@@ -83,12 +83,12 @@ export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) 
             </select>
           </div>
           <div className="w-20">
-            <label className="text-gray-400 text-xs mb-1 block">Seconds</label>
+            <label className="text-muted-foreground text-xs mb-1 block">Seconds</label>
             <input
               type="number"
               min={2}
               max={10}
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg text-gray-100 text-xs px-2 py-1.5 focus:outline-none focus:border-rose-500"
+              className="w-full bg-muted border border-input rounded-lg text-foreground text-xs px-2 py-1.5 focus:outline-none focus:border-node-pink"
               value={data.duration ?? 5}
               onChange={(e) =>
                 updateNodeData(id, { duration: Number(e.target.value) })
@@ -97,19 +97,19 @@ export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) 
           </div>
         </div>
 
-        <div className="text-gray-600 text-[10px] flex gap-3">
+        <div className="text-muted-foreground text-[10px] flex gap-3">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-indigo-400 inline-block" />
+            <span className="w-2 h-2 rounded-full bg-node-purple inline-block" />
             Prompt in
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
+            <span className="w-2 h-2 rounded-full bg-node-blue inline-block" />
             Image in (optional)
           </span>
         </div>
 
         {/* Preview */}
-        <div className="rounded-lg overflow-hidden bg-gray-800 border border-gray-700 min-h-[120px] flex items-center justify-center">
+        <div className="rounded-lg overflow-hidden bg-muted border border-border min-h-[120px] flex items-center justify-center">
           {data.videoUrl ? (
             <video
               src={data.videoUrl}
@@ -120,7 +120,7 @@ export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) 
               muted
             />
           ) : (
-            <span className="text-gray-600 text-xs">
+            <span className="text-muted-foreground text-xs">
               {status === "running" ? "Generating video…" : "Output will appear here"}
             </span>
           )}
@@ -131,7 +131,7 @@ export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) 
             href={data.videoUrl}
             target="_blank"
             rel="noreferrer"
-            className="block text-center text-xs text-rose-400 hover:text-rose-300"
+            className="block text-center text-xs text-node-pink hover:text-node-pink"
           >
             Download video ↗
           </a>
@@ -143,7 +143,7 @@ export default function VideoGenNode({ id, data }: NodeProps<VideoGenNodeType>) 
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-3 !h-3 !bg-rose-400 !border-2 !border-rose-600"
+        className="!w-3 !h-3 !bg-node-pink !border-2 !border-node-pink"
       />
     </div>
   );

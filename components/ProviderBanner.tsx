@@ -18,28 +18,28 @@ export default function ProviderBanner() {
         justifyContent: "center",
         gap: "8px",
         padding: "9px 16px",
-        background: "rgba(239,68,68,0.12)",
+        background: "color-mix(in srgb, var(--destructive) 12%, transparent)",
         borderTop: "none",
-        borderBottom: "1px solid rgba(239,68,68,0.3)",
+        borderBottom: "1px solid color-mix(in srgb, var(--destructive) 30%, transparent)",
         borderLeft: "none",
         borderRight: "none",
         cursor: "pointer",
         transition: "background 150ms",
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.18)"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
+      onMouseEnter={e => { e.currentTarget.style.background = "color-mix(in srgb, var(--destructive) 18%, transparent)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "color-mix(in srgb, var(--destructive) 12%, transparent)"; }}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(239,68,68,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--destructive)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
         <line x1="12" y1="9" x2="12" y2="13" />
         <line x1="12" y1="17" x2="12.01" y2="17" />
       </svg>
-      <span style={{ fontSize: "12px", color: "rgba(239,68,68,0.9)", fontWeight: 500 }}>
+      <span style={{ fontSize: "12px", color: "var(--destructive)", fontWeight: 500 }}>
         还没有连接服务商，请先在设置中保存 API 地址，再添加需要的模型。
       </span>
       <span style={{
-        fontSize: "11px", fontWeight: 600, color: "rgba(239,68,68,0.7)",
-        background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)",
+        fontSize: "11px", fontWeight: 600, color: "var(--destructive)",
+        background: "color-mix(in srgb, var(--destructive) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--destructive) 25%, transparent)",
         borderRadius: "5px", padding: "2px 8px", marginLeft: "4px",
       }}>
         去配置 →

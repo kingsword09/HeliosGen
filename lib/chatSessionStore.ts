@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export interface StoredMessage {
   role: "user" | "assistant";
   content: string;
+  imageUrls?: string[];
 }
 
 export interface ChatSession {

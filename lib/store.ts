@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { edgeStyle } from "./edgeStyles";
 import { getModelCatalog } from "./useModelCatalog";
 import { requestWorkflowSync } from "./workflowSyncBus";
+import { persistentWorkflowNode, persistentWorkflowSpace } from "./workflowPersistence";
 import {
   Node,
   Edge,
@@ -715,21 +716,10 @@ export const useWorkflowStore = create<WorkflowStore>()(
       name: "heliosgen-guest",
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
-        spaces: s.spaces.map((sp) => ({
-          ...sp,
-          viewport: sp.viewport,
-          // Strip base64 inputImage — only the durable r2Url survives reload
-          nodes: sp.nodes.map((n) => ({
-            ...n,
-            data: { ...n.data, inputImage: undefined },
-          })),
-        })),
+        spaces: s.spaces.map(persistentWorkflowSpace),
         activeSpaceId: s.activeSpaceId,
         // Also persist the live copies so a page refresh rehydrates correctly
-        nodes: s.nodes.map((n) => ({
-          ...n,
-          data: { ...n.data, inputImage: undefined },
-        })),
+        nodes: s.nodes.map(persistentWorkflowNode),
         edges:        s.edges,
         nodeCounters: s.nodeCounters,
         debugMode:    s.debugMode,

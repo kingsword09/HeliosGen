@@ -119,6 +119,7 @@ export function validateProviderConfig(value: unknown): ProviderConfig {
       config.models.push(model);
     }
   }
+  config.models = config.models.map((model) => resolveModelParameters(model, model.connection?.protocol ?? (model.kind === "image" ? config.imageProtocol : model.kind === "text" ? config.chatProtocol : "task")));
   Object.assign(config, withProviderModels(config, config.models));
   for (const model of config.models) model.parameterProtocol ??= model.connection?.protocol ?? (model.kind === "image" ? config.imageProtocol : model.kind === "text" ? config.chatProtocol : "task");
   for (const key of ["modelsPath", "imagesPath", "editsPath", "chatPath", "videoPath", "statusPath", "uploadPath"] as const) {
@@ -181,8 +182,9 @@ export function getProviderModelDefinition(config: ProviderConfig, kind: "image"
   const configured = config.models.find((model) => model.enabled && model.kind === modelKind && (selected.startsWith("provider-model:") ? providerModelId(config.id, model) === selected : model.apiId === apiId));
   if (configured) return configured;
   if (kind === "image" && config.imageProtocol === "openai" && ["gpt-image-2.6-flare", "gpt-image-2.6-sunburst"].includes(apiId)) {
-    return { ...newProviderModel("image", apiId), id: `preset-${apiId.replaceAll(".", "-")}`, maxImages: 1 };
+    return resolveModelParameters({ ...newProviderModel("image", apiId), id: `preset-${apiId.replaceAll(".", "-")}`, parameterPreset: "auto" }, "openai");
   }
   return undefined;
 }
 import { newProviderModel, providerModelId, validateProviderModels, type ProviderModel } from "./providerModelConfig";
+import { resolveModelParameters } from "./modelParameterPresets";

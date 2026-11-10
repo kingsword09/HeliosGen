@@ -13,11 +13,11 @@ const IMAGE_MODELS = [
 ];
 
 const STATUS_RING: Record<string, string> = {
-  idle: "border-gray-700",
-  pending: "border-gray-500",
-  running: "border-yellow-500",
-  done: "border-emerald-500",
-  error: "border-red-500",
+  idle: "border-border",
+  pending: "border-muted-foreground",
+  running: "border-status-warning",
+  done: "border-status-success",
+  error: "border-destructive",
 };
 
 export default function ImageGenNode({ id, data }: NodeProps<ImageGenNodeType>) {
@@ -31,38 +31,38 @@ export default function ImageGenNode({ id, data }: NodeProps<ImageGenNodeType>) 
   return (
     <div
       ref={cardRef}
-      className={`node-card bg-gray-900 border-2 rounded-xl w-72 shadow-lg ${STATUS_RING[status]} ${busy ? "node-generating" : ""}`}
+      className={`node-card bg-card border-2 rounded-xl w-72 shadow-lg ${STATUS_RING[status]} ${busy ? "node-generating" : ""}`}
     >
       {/* Input handle */}
       <Handle
         type="target"
         position={Position.Left}
         id="prompt"
-        className="!w-3 !h-3 !bg-indigo-400 !border-2 !border-indigo-600"
+        className="!w-3 !h-3 !bg-node-purple !border-2 !border-node-purple"
       />
 
       <div className="overflow-hidden rounded-[7px]">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-blue-900/60 border-b border-blue-700/50">
-        <span className="text-blue-300 text-sm">🎨</span>
-        <span className="text-blue-200 font-semibold text-sm">Image Generation</span>
+      <div className="flex items-center gap-2 px-3 py-2 bg-node-blue/15 border-b border-node-blue/30">
+        <span className="text-node-blue text-sm">🎨</span>
+        <span className="text-node-blue font-semibold text-sm">Image Generation</span>
         {status === "running" && (
-          <span className="ml-auto text-yellow-400 text-xs animate-pulse">Generating…</span>
+          <span className="ml-auto text-status-warning text-xs animate-pulse">Generating…</span>
         )}
         {status === "done" && (
-          <span className="ml-auto text-emerald-400 text-xs">Done</span>
+          <span className="ml-auto text-status-success text-xs">Done</span>
         )}
         {status === "error" && (
-          <span className="ml-auto text-red-400 text-xs">Error</span>
+          <span className="ml-auto text-destructive text-xs">Error</span>
         )}
       </div>
 
       {/* Body */}
       <div className="p-3 space-y-2">
         <div>
-          <label className="text-gray-400 text-xs mb-1 block">Model</label>
+          <label className="text-muted-foreground text-xs mb-1 block">Model</label>
           <select
-            className="w-full bg-gray-800 border border-gray-600 rounded-lg text-gray-100 text-xs px-2 py-1.5 focus:outline-none focus:border-blue-500"
+            className="w-full bg-muted border border-input rounded-lg text-foreground text-xs px-2 py-1.5 focus:outline-none focus:border-node-blue"
             value={data.model ?? "flux-schnell"}
             onChange={(e) => updateNodeData(id, { model: e.target.value })}
           >
@@ -75,7 +75,7 @@ export default function ImageGenNode({ id, data }: NodeProps<ImageGenNodeType>) 
         </div>
 
         {/* Preview */}
-        <div className="rounded-lg overflow-hidden bg-gray-800 border border-gray-700 min-h-[120px] flex items-center justify-center">
+        <div className="rounded-lg overflow-hidden bg-muted border border-border min-h-[120px] flex items-center justify-center">
           {data.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -84,7 +84,7 @@ export default function ImageGenNode({ id, data }: NodeProps<ImageGenNodeType>) 
               className="w-full object-cover"
             />
           ) : (
-            <span className="text-gray-600 text-xs">
+            <span className="text-muted-foreground text-xs">
               {status === "running" ? "Generating image…" : "Output will appear here"}
             </span>
           )}
@@ -95,7 +95,7 @@ export default function ImageGenNode({ id, data }: NodeProps<ImageGenNodeType>) 
             href={data.imageUrl}
             target="_blank"
             rel="noreferrer"
-            className="block text-center text-xs text-blue-400 hover:text-blue-300"
+            className="block text-center text-xs text-node-blue hover:text-node-blue"
           >
             Open full size ↗
           </a>
@@ -107,7 +107,7 @@ export default function ImageGenNode({ id, data }: NodeProps<ImageGenNodeType>) 
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-3 !h-3 !bg-blue-400 !border-2 !border-blue-600"
+        className="!w-3 !h-3 !bg-node-blue !border-2 !border-node-blue"
       />
     </div>
   );

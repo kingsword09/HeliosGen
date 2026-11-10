@@ -334,11 +334,11 @@ export default function NodePickerMenu({ dropState, onClose }: Props) {
       <div
         ref={menuRef}
         style={{ position: "fixed", left, top, zIndex: 1000 }}
-        className="w-56 bg-[#0F1214] border border-[#2A2A2A] rounded-lg shadow-2xl overflow-hidden"
+        className="w-56 bg-[var(--ui-tone-0f1214)] border border-[var(--ui-tone-2a2a2a)] rounded-lg shadow-2xl overflow-hidden"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="px-3 py-2 border-b border-[#1E1E1E]">
-          <p className="text-[10px] text-[#4A4A45] uppercase tracking-widest font-medium">
+        <div className="px-3 py-2 border-b border-[var(--ui-tone-1e1e1e)]">
+          <p className="text-[10px] text-[var(--ui-tone-4a4a45)] uppercase tracking-widest font-medium">
             Connect to
           </p>
         </div>
@@ -350,7 +350,7 @@ export default function NodePickerMenu({ dropState, onClose }: Props) {
               key={n.type}
               onClick={() => handleSelect(n.type)}
               onMouseDown={(e) => e.stopPropagation()}
-              className="w-full text-left px-3 py-2.5 hover:bg-[#161A1E] transition-colors"
+              className="w-full text-left px-3 py-2.5 hover:bg-[var(--ui-tone-161a1e)] transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <span
@@ -362,18 +362,18 @@ export default function NodePickerMenu({ dropState, onClose }: Props) {
                     width: "30px",
                     height: "30px",
                     borderRadius: "8px",
-                    background: meta?.bg ?? "rgba(255,255,255,0.06)",
-                    color: meta?.accent ?? "#aaa",
-                    border: `1px solid ${meta?.accent ?? "#333"}28`,
+                    background: meta?.bg ?? "rgb(var(--ui-ink-rgb) / 0.06)",
+                    color: meta?.accent ?? "var(--ui-text-tone-aaaaaa)",
+                    border: `1px solid color-mix(in srgb, ${meta?.accent ?? "var(--ui-tone-333333)"} 16%, transparent)`,
                   }}
                 >
                   {meta?.bigIcon ?? n.icon}
                 </span>
                 <span className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[13px] text-white font-medium leading-none">
+                  <span className="text-[13px] text-foreground font-medium leading-none">
                     {n.label}
                   </span>
-                  <span className="text-[10px] text-[#4A4A45] leading-none">
+                  <span className="text-[10px] text-[var(--ui-tone-4a4a45)] leading-none">
                     {n.description}
                   </span>
                 </span>

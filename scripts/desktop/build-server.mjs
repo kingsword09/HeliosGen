@@ -17,6 +17,7 @@ import {
 } from "node:fs";
 import { join, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stageDependencies } from "./stage-dependencies.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DESKTOP = join(ROOT, "desktop");
@@ -67,12 +68,15 @@ if (!existsSync(join(STANDALONE, "server.js"))) {
 }
 
 console.log("[desktop] staging server →", STAGE);
-cpSync(STANDALONE, STAGE, { recursive: true });
-rmSync(join(STAGE, "desktop"), { recursive: true, force: true });
-rmSync(join(STAGE, "build"), { recursive: true, force: true });
-rmSync(join(STAGE, ".next"), { recursive: true, force: true });
-cpSync(join(NEXT_OUTPUT, "server"), join(STAGE, "next-desktop", "server"), { recursive: true });
-cpSync(join(NEXT_OUTPUT, "static"), join(STAGE, "next-desktop", "static"), { recursive: true });
+mkdirSync(STAGE, { recursive: true });
+copyFileSync(join(STANDALONE, "server.js"), join(STAGE, "server.js"));
+cpSync(join(STANDALONE, "next-desktop"), join(STAGE, "next-desktop"), {
+  recursive: true,
+  filter: (source) => !["server", "node_modules"].includes(source.slice(join(STANDALONE, "next-desktop").length + 1).split(sep)[0]),
+});
+const runtimeAsset = (source) => !source.endsWith(".map");
+cpSync(join(NEXT_OUTPUT, "server"), join(STAGE, "next-desktop", "server"), { recursive: true, filter: runtimeAsset });
+cpSync(join(NEXT_OUTPUT, "static"), join(STAGE, "next-desktop", "static"), { recursive: true, filter: runtimeAsset });
 copyFileSync(join(ROOT, "scripts", "desktop", "sidecar-guard.js"), join(STAGE, "sidecar-guard.js"));
 if (existsSync(join(ROOT, "public"))) {
   cpSync(join(ROOT, "public"), join(STAGE, "public"), {
@@ -81,35 +85,13 @@ if (existsSync(join(ROOT, "public"))) {
   });
 }
 
-// The Next.js file tracer (nft) is unreliable with pnpm's symlinked store — it
-// leaves many packages as a bare package.json. Rather than chase truncations,
-// throw away the traced node_modules and do a clean production install from the
-// app's own manifest, giving a flat, symlink-free, self-contained tree.
-// nft is unreliable with pnpm (leaves packages truncated), so install the prod
-// tree cleanly with npm instead. The repo is pnpm-managed with a stale
-// package-lock.json, and `next build` output is tied to the EXACT `next` version
-// that produced it — so pin every prod dep to the version actually installed in
-// the repo before installing, rather than letting npm re-resolve `^` ranges.
-console.log("[desktop] clean production install into stage…");
-rmSync(join(STAGE, "node_modules"), { recursive: true, force: true });
-
 const rootPkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
-const pinned = {};
-for (const name of Object.keys(rootPkg.dependencies ?? {})) {
-  try {
-    const v = JSON.parse(
-      readFileSync(join(ROOT, "node_modules", ...name.split("/"), "package.json"), "utf8"),
-    ).version;
-    pinned[name] = v;
-  } catch {
-    pinned[name] = rootPkg.dependencies[name]; // fall back to the range
-  }
-}
+console.log("[desktop] materializing traced runtime dependencies…");
+const dependencies = stageDependencies(NEXT_OUTPUT, STAGE);
 writeFileSync(
   join(STAGE, "package.json"),
-  JSON.stringify({ ...rootPkg, dependencies: pinned, devDependencies: {} }, null, 2),
+  JSON.stringify({ name: rootPkg.name, version: rootPkg.version, private: true, dependencies }, null, 2),
 );
-run("npm", ["install", "--omit=dev", "--no-audit", "--no-fund", "--no-package-lock"], {}, STAGE);
 
 // Sanity check: the standalone server's own entry deps must be intact.
 for (const probe of ["next/package.json", "@next/env/package.json", "react/package.json"]) {
@@ -131,7 +113,7 @@ if (existsSync(aliasesDir)) {
     cpSync(installed, join(STAGE, "next-desktop", "node_modules", ...alias.split("/")), { recursive: true });
   }
 }
-run("node", ["-e", "require('./next-desktop/server/app/api/health/route.js'); require('./next-desktop/server/app/api/settings/provider/models/route.js')"], {}, STAGE);
+run("node", ["-e", "require('sharp'); require('undici'); require('./next-desktop/server/app/api/health/route.js'); require('./next-desktop/server/app/api/settings/provider/models/route.js')"], { NODE_ENV: "production" }, STAGE);
 
 // Prune what a prebuilt standalone server never loads at runtime:
 //  - @next/swc-* : the SWC compiler, build-time only (~95 MB)

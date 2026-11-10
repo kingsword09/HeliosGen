@@ -33,8 +33,8 @@ function Btn({
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       title={title}
       className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors duration-150 ${
-        danger ? "text-white hover:text-red-400 hover:bg-red-400/10"
-               : "text-white hover:bg-white/10"
+        danger ? "text-foreground hover:text-destructive hover:bg-destructive/10"
+               : "text-foreground hover:bg-foreground/10"
       }`}
     >
       {children}
@@ -43,7 +43,7 @@ function Btn({
 }
 
 function Sep() {
-  return <span className="w-px h-4 bg-white/[0.08] mx-0.5 shrink-0" />;
+  return <span className="w-px h-4 bg-foreground/[0.08] mx-0.5 shrink-0" />;
 }
 
 // Runs inside the ReactFlow provider
@@ -186,10 +186,10 @@ export default function SelectionToolbar() {
         className="flex items-center gap-0.5 px-1.5 py-1"
         style={{
           borderRadius: 999,
-          background:   "rgba(16, 16, 16, 0.96)",
+          background:   "rgb(var(--ui-tone-101010-rgb) / 0.96)",
           backdropFilter: "blur(12px)",
-          border:       "1px solid rgba(255,255,255,0.07)",
-          boxShadow:    "0 4px 24px rgba(0,0,0,0.65), 0 1px 4px rgba(0,0,0,0.4)",
+          border:       "1px solid rgb(var(--ui-ink-rgb) / 0.07)",
+          boxShadow:    "0 4px 24px rgb(var(--ui-shadow-rgb)/calc(0.65*var(--ui-shadow-opacity))), 0 1px 4px rgb(var(--ui-shadow-rgb)/calc(0.4*var(--ui-shadow-opacity)))",
           whiteSpace:   "nowrap",
         }}
       >

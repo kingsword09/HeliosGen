@@ -55,6 +55,7 @@ next-env.d.ts
 # MyGo desktop build artifacts
 /.mygo/
 /desktop/resources/server/
+/desktop/resources/frontend/
 /desktop/mygo.ts
 # Signing / notarization secrets
 /scripts/desktop/sign.env

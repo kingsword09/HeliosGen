@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --helios-layer-modal: 100000;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -9,6 +14,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -17,25 +24,47 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
+  --color-destructive-solid: var(--destructive-solid);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-status-success: var(--ui-accent-4ade80);
+  --color-status-warning: var(--ui-accent-fbbf24);
+  --color-switch-checked: var(--ui-accent-2dd4bf);
+  --color-switch-unchecked: var(--ui-text-tone-6b7280);
+  --color-switch-thumb: #ffffff;
+  --color-switch-checked-thumb: var(--ui-on-ink);
+  --color-node-blue: var(--ui-accent-60a5fa);
+  --color-node-pink: var(--ui-accent-f472b6);
+  --color-node-purple: var(--ui-accent-a78bfa);
+  --color-overlay: var(--overlay);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-note: var(--note);
+  --color-note-foreground: var(--note-foreground);
+  --color-note-muted: var(--note-muted);
+  --color-note-border: var(--note-border);
 }
 
 .provider-settings,
 .provider-settings-menu {
-  --background: rgba(255, 255, 255, 0.04);
-  --foreground: rgba(255, 255, 255, 0.85);
-  --card: rgba(255, 255, 255, 0.02);
-  --card-foreground: rgba(255, 255, 255, 0.85);
-  --popover: #101114;
-  --popover-foreground: rgba(255, 255, 255, 0.85);
-  --primary: rgba(45, 212, 191, 0.15);
-  --primary-foreground: #2dd4bf;
-  --muted: rgba(255, 255, 255, 0.06);
-  --muted-foreground: rgba(255, 255, 255, 0.35);
-  --accent: rgba(255, 255, 255, 0.08);
-  --accent-foreground: rgba(255, 255, 255, 0.9);
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: rgba(45, 212, 191, 0.35);
+  --background: rgb(var(--ui-ink-rgb) / 0.04);
+  --foreground: rgb(var(--ui-ink-rgb) / 0.85);
+  --card: rgb(var(--ui-ink-rgb) / 0.02);
+  --card-foreground: rgb(var(--ui-ink-rgb) / 0.85);
+  --popover: var(--ui-tone-101114);
+  --popover-foreground: rgb(var(--ui-ink-rgb) / 0.85);
+  --primary: rgb(var(--ui-accent-2dd4bf-rgb) / 0.15);
+  --primary-foreground: var(--ui-accent-2dd4bf);
+  --muted: rgb(var(--ui-ink-rgb) / 0.06);
+  --muted-foreground: rgb(var(--ui-ink-rgb) / 0.35);
+  --accent: rgb(var(--ui-ink-rgb) / 0.08);
+  --accent-foreground: rgb(var(--ui-ink-rgb) / 0.9);
+  --border: rgb(var(--ui-ink-rgb) / 0.1);
+  --input: rgb(var(--ui-ink-rgb) / 0.08);
+  --ring: rgb(var(--ui-accent-2dd4bf-rgb) / 0.35);
   --destructive: rgba(239, 68, 68, 0.85);
   --radius-md: 7px;
   font-size: 12px;
@@ -77,8 +106,8 @@ body,
 }
 
 body {
-  background: #0B0E14;
-  color: #FFFFFF;
+  background: var(--ui-tone-0b0e14);
+  color: var(--ui-tone-ffffff);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -92,21 +121,21 @@ body {
 
 /* ── Node design system ──────────────────────────────── */
 .node-card {
-  background: #141820;
+  background: var(--ui-tone-141820);
   border: 1px solid transparent;
   border-radius: 8px;
   overflow: visible;
   position: relative;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
   transition: border-color 120ms, box-shadow 120ms;
 }
 
 .node-card:hover {
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 2px 20px rgb(var(--ui-shadow-rgb)/calc(0.6*var(--ui-shadow-opacity)));
 }
 
 .node-card:hover .node-above-label {
-  color: #A0A0A0;
+  color: var(--ui-text-tone-a0a0a0);
 }
 
 .node-header {
@@ -114,13 +143,13 @@ body {
   align-items: center;
   gap: 6px;
   padding: 7px 10px;
-  border-bottom: 1px solid #1C2436;
+  border-bottom: 1px solid var(--ui-tone-1c2436);
 }
 
 .node-label {
   font-size: 12px;
   font-weight: 500;
-  color: #A0A0A0;
+  color: var(--ui-text-tone-a0a0a0);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -128,17 +157,17 @@ body {
 .node-field-label {
   display: block;
   font-size: 11px;
-  color: #A0A0A0;
+  color: var(--ui-text-tone-a0a0a0);
   margin-bottom: 4px;
   letter-spacing: 0.02em;
 }
 
 .node-textarea {
   width: 100%;
-  background: #0D1119;
-  border: 1px solid #1A2030;
+  background: var(--ui-tone-0d1119);
+  border: 1px solid var(--ui-tone-1a2030);
   border-radius: 5px;
-  color: #FFFFFF;
+  color: var(--ui-tone-ffffff);
   font-size: 13px;
   line-height: 1.5;
   padding: 7px 8px;
@@ -149,19 +178,19 @@ body {
 }
 
 .node-textarea::placeholder {
-  color: #3A4055;
+  color: var(--ui-text-tone-3a4055);
 }
 
 .node-textarea:focus {
-  border-color: #3A4055;
+  border-color: var(--ui-tone-3a4055);
 }
 
 .node-input {
   width: 100%;
-  background: #0D1119;
-  border: 1px solid #1A2030;
+  background: var(--ui-tone-0d1119);
+  border: 1px solid var(--ui-tone-1a2030);
   border-radius: 5px;
-  color: #FFFFFF;
+  color: var(--ui-tone-ffffff);
   font-size: 12px;
   padding: 5px 8px;
   outline: none;
@@ -170,19 +199,19 @@ body {
 }
 
 .node-input::placeholder {
-  color: #3A4055;
+  color: var(--ui-text-tone-3a4055);
 }
 
 .node-input:focus {
-  border-color: #3A4055;
+  border-color: var(--ui-tone-3a4055);
 }
 
 .node-select {
   width: 100%;
-  background: #0D1119;
-  border: 1px solid #1A2030;
+  background: var(--ui-tone-0d1119);
+  border: 1px solid var(--ui-tone-1a2030);
   border-radius: 5px;
-  color: #A0A0A0;
+  color: var(--ui-text-tone-a0a0a0);
   font-size: 12px;
   padding: 5px 8px;
   outline: none;
@@ -193,7 +222,7 @@ body {
 }
 
 .node-select:focus {
-  border-color: #1E2840;
+  border-color: var(--ui-tone-1e2840);
 }
 
 /* ── Floating node label (above frame) ───────────────── */
@@ -202,7 +231,7 @@ body {
   top: -20px;
   left: 2px;
   font-size: 11px;
-  color: #6A7080;
+  color: var(--ui-text-tone-6a7080);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
@@ -218,8 +247,8 @@ body {
   width: 14px !important;
   height: 14px !important;
   border-radius: 50% !important;
-  border: 2px solid #0B0E14 !important;
-  background: #1A2235 !important;
+  border: 2px solid var(--ui-tone-0b0e14) !important;
+  background: var(--ui-tone-1a2235) !important;
   /* neutral — role color when connected or selected */
   z-index: 10;
   opacity: 0;
@@ -278,7 +307,7 @@ body {
 
 .node-handle-prompt.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-prompt.react-flow__handle {
-  background: #2DD4BF !important;
+  background: var(--ui-accent-2dd4bf) !important;
 }
 
 .node-handle-source.react-flow__handle.node-handle-connected,
@@ -288,7 +317,7 @@ body {
 
 .node-handle-video.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-video.react-flow__handle {
-  background: #22d3ee !important;
+  background: var(--ui-accent-22d3ee) !important;
 }
 
 /* ── Icon handles ────────────────────────────────────────────────────────── */
@@ -296,8 +325,8 @@ body {
   width: 28px !important;
   height: 28px !important;
   border-radius: 50% !important;
-  background: #0D1119 !important;
-  border: 1.5px solid #1E2540 !important;
+  background: var(--ui-tone-0d1119) !important;
+  border: 1.5px solid var(--ui-tone-1e2540) !important;
   /* neutral — role color only when connected */
   display: flex !important;
   align-items: center !important;
@@ -362,76 +391,76 @@ body {
 /* Connected or selected: full role color — input handles */
 .node-handle-icon-prompt.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-icon-prompt.react-flow__handle {
-  border-color: #2DD4BF !important;
-  --handle-color: #2DD4BF;
+  border-color: var(--ui-accent-2dd4bf) !important;
+  --handle-color: var(--ui-accent-2dd4bf);
 }
 
 .node-handle-icon-image.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-icon-image.react-flow__handle {
-  border-color: #2DD4BF !important;
-  --handle-color: #2DD4BF;
+  border-color: var(--ui-accent-2dd4bf) !important;
+  --handle-color: var(--ui-accent-2dd4bf);
 }
 
 .node-handle-icon-resource.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-icon-resource.react-flow__handle {
-  border-color: #fb923c !important;
-  --handle-color: #fb923c;
+  border-color: var(--ui-accent-fb923c) !important;
+  --handle-color: var(--ui-accent-fb923c);
 }
 
 .node-handle-icon-videoref.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-icon-videoref.react-flow__handle {
-  border-color: #22d3ee !important;
-  --handle-color: #22d3ee;
+  border-color: var(--ui-accent-22d3ee) !important;
+  --handle-color: var(--ui-accent-22d3ee);
 }
 
 .node-handle-icon-refvideo.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-icon-refvideo.react-flow__handle {
-  border-color: #38bdf8 !important;
-  --handle-color: #38bdf8;
+  border-color: var(--ui-accent-38bdf8) !important;
+  --handle-color: var(--ui-accent-38bdf8);
 }
 
 .node-handle-icon-audioref.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-icon-audioref.react-flow__handle {
-  border-color: #5EEAD4 !important;
-  --handle-color: #5EEAD4;
+  border-color: var(--ui-accent-5eead4) !important;
+  --handle-color: var(--ui-accent-5eead4);
 }
 
 .node-handle-icon-character.react-flow__handle.node-handle-connected,
 .react-flow__node.selected .node-handle-icon-character.react-flow__handle {
-  border-color: #f472b6 !important;
-  --handle-color: #f472b6;
+  border-color: var(--ui-accent-f472b6) !important;
+  --handle-color: var(--ui-accent-f472b6);
 }
 
 /* Output handle colors — always visible when the handle is shown (hover/selected/connected) */
 .react-flow__node:hover .node-handle-icon-out-text.react-flow__handle,
 .react-flow__node.selected .node-handle-icon-out-text.react-flow__handle,
 .node-handle-icon-out-text.react-flow__handle.node-handle-connected {
-  border-color: #2DD4BF !important;
+  border-color: var(--ui-accent-2dd4bf) !important;
 }
 
 .react-flow__node:hover .node-handle-icon-out-image.react-flow__handle,
 .react-flow__node.selected .node-handle-icon-out-image.react-flow__handle,
 .node-handle-icon-out-image.react-flow__handle.node-handle-connected {
-  border-color: #2DD4BF !important;
+  border-color: var(--ui-accent-2dd4bf) !important;
 }
 
 .react-flow__node:hover .node-handle-icon-out-video.react-flow__handle,
 .react-flow__node.selected .node-handle-icon-out-video.react-flow__handle,
 .node-handle-icon-out-video.react-flow__handle.node-handle-connected {
-  border-color: #22d3ee !important;
+  border-color: var(--ui-accent-22d3ee) !important;
 }
 
 .react-flow__node:hover .node-handle-icon-out-audio.react-flow__handle,
 .react-flow__node.selected .node-handle-icon-out-audio.react-flow__handle,
 .node-handle-icon-out-audio.react-flow__handle.node-handle-connected {
-  border-color: #5EEAD4 !important;
+  border-color: var(--ui-accent-5eead4) !important;
 }
 
 /* Assistant output — yellow, overrides the inherited out-text blue */
 .react-flow__node:hover .node-handle-icon-out-assistant.react-flow__handle,
 .react-flow__node.selected .node-handle-icon-out-assistant.react-flow__handle,
 .node-handle-icon-out-assistant.react-flow__handle.node-handle-connected {
-  border-color: #FBBF24 !important;
+  border-color: var(--ui-accent-fbbf24) !important;
 }
 
 /* Selected + unconnected: dim input (left) handles only; output handles keep full opacity */
@@ -466,51 +495,51 @@ body {
 
 /* Connecting handle: show its type color */
 .node-handle-icon-prompt.react-flow__handle.node-handle-connecting {
-  border-color: #2DD4BF !important;
+  border-color: var(--ui-accent-2dd4bf) !important;
 }
 
 .node-handle-icon-image.react-flow__handle.node-handle-connecting {
-  border-color: #2DD4BF !important;
+  border-color: var(--ui-accent-2dd4bf) !important;
 }
 
 .node-handle-icon-resource.react-flow__handle.node-handle-connecting {
-  border-color: #fb923c !important;
+  border-color: var(--ui-accent-fb923c) !important;
 }
 
 .node-handle-icon-videoref.react-flow__handle.node-handle-connecting {
-  border-color: #22d3ee !important;
+  border-color: var(--ui-accent-22d3ee) !important;
 }
 
 .node-handle-icon-refvideo.react-flow__handle.node-handle-connecting {
-  border-color: #38bdf8 !important;
+  border-color: var(--ui-accent-38bdf8) !important;
 }
 
 .node-handle-icon-audioref.react-flow__handle.node-handle-connecting {
-  border-color: #5EEAD4 !important;
+  border-color: var(--ui-accent-5eead4) !important;
 }
 
 .node-handle-icon-character.react-flow__handle.node-handle-connecting {
-  border-color: #f472b6 !important;
+  border-color: var(--ui-accent-f472b6) !important;
 }
 
 .node-handle-icon-out-text.react-flow__handle.node-handle-connecting {
-  border-color: #2DD4BF !important;
+  border-color: var(--ui-accent-2dd4bf) !important;
 }
 
 .node-handle-icon-out-assistant.react-flow__handle.node-handle-connecting {
-  border-color: #FBBF24 !important;
+  border-color: var(--ui-accent-fbbf24) !important;
 }
 
 .node-handle-icon-out-image.react-flow__handle.node-handle-connecting {
-  border-color: #2DD4BF !important;
+  border-color: var(--ui-accent-2dd4bf) !important;
 }
 
 .node-handle-icon-out-video.react-flow__handle.node-handle-connecting {
-  border-color: #22d3ee !important;
+  border-color: var(--ui-accent-22d3ee) !important;
 }
 
 .node-handle-icon-out-audio.react-flow__handle.node-handle-connecting {
-  border-color: #5EEAD4 !important;
+  border-color: var(--ui-accent-5eead4) !important;
 }
 
 /* ── Show only compatible input handles while connecting ─────────────────── */
@@ -558,7 +587,7 @@ body {
   flex: 1;
   height: 3px;
   border-radius: 99px;
-  background: #1C2436;
+  background: var(--ui-tone-1c2436);
   outline: none;
   cursor: pointer;
 }
@@ -568,19 +597,19 @@ body {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--ui-tone-ffffff);
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 4px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
 }
 
 .dur-slider::-moz-range-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--ui-tone-ffffff);
   cursor: pointer;
   border: none;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 4px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
 }
 
 /* ── Instant hide on deselect (class toggled by JS) ─────────────────────── */
@@ -604,8 +633,8 @@ body {
 
 /* ── Selection rectangle (drag) + post-release overlay ── */
 .react-flow__selection {
-  background: rgba(45, 212, 191, 0.04) !important;
-  border: 1px solid rgba(45, 212, 191, 0.3) !important;
+  background: rgb(var(--ui-accent-2dd4bf-rgb) / 0.04) !important;
+  border: 1px solid rgb(var(--ui-accent-2dd4bf-rgb) / 0.3) !important;
   border-radius: 3px;
   z-index: 0 !important;
   pointer-events: none;
@@ -618,20 +647,20 @@ body {
 }
 
 .react-flow__nodesselection-rect {
-  background: rgba(45, 212, 191, 0.03) !important;
-  border: 1px solid rgba(45, 212, 191, 0.2) !important;
+  background: rgb(var(--ui-accent-2dd4bf-rgb) / 0.03) !important;
+  border: 1px solid rgb(var(--ui-accent-2dd4bf-rgb) / 0.2) !important;
   border-radius: 3px;
 }
 
 /* ── React Flow overrides ────────────────────────────── */
 .react-flow {
-  --xy-background-color-default: #0B0E14;
-  background: #0B0E14;
+  --xy-background-color-default: var(--ui-tone-0b0e14);
+  background: var(--ui-tone-0b0e14);
 }
 
 .react-flow__node.selected .node-card {
-  border-color: #2DD4BF !important;
-  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.25), 0 2px 16px rgba(0, 15, 30, 0.5);
+  border-color: var(--ui-accent-2dd4bf) !important;
+  box-shadow: 0 0 0 1px rgb(var(--ui-accent-2dd4bf-rgb) / 0.25), 0 2px 16px rgb(var(--ui-tone-000f1e-rgb) / 0.5);
 }
 
 .react-flow__node.selected .node-card.node-generating {
@@ -652,8 +681,8 @@ body {
 
 /* ── Ancestor highlight (upstream nodes of selected node) ── */
 .react-flow__node.node-ancestor .node-card {
-  border-color: #2DD4BF !important;
-  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.15), 0 2px 16px rgba(0, 0, 0, 0.5);
+  border-color: var(--ui-accent-2dd4bf) !important;
+  box-shadow: 0 0 0 1px rgb(var(--ui-accent-2dd4bf-rgb) / 0.15), 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
   transition: border-color 150ms, box-shadow 150ms;
 }
 
@@ -669,13 +698,13 @@ body {
 
 /* ── Group-preview highlight (downstream + other connected nodes) ── */
 .react-flow__node.node-group-preview .node-card {
-  border-color: rgba(190, 190, 190, 0.65) !important;
-  box-shadow: 0 0 0 1px rgba(190, 190, 190, 0.1), 0 2px 16px rgba(0, 0, 0, 0.5);
+  border-color: rgb(var(--ui-tone-bebebe-rgb) / 0.65) !important;
+  box-shadow: 0 0 0 1px rgb(var(--ui-tone-bebebe-rgb) / 0.1), 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
   transition: border-color 150ms, box-shadow 150ms;
 }
 
 .react-flow__node.node-group-preview .node-above-label {
-  color: rgba(190, 190, 190, 0.65);
+  color: rgb(var(--ui-tone-bebebe-rgb) / 0.65);
   transition: color 150ms;
 }
 
@@ -685,21 +714,21 @@ body {
 
 .react-flow__controls {
   box-shadow: none !important;
-  border: 1px solid #1A2030 !important;
+  border: 1px solid var(--ui-tone-1a2030) !important;
   border-radius: 6px !important;
   overflow: hidden;
 }
 
 .react-flow__controls-button {
-  background: #0B0E14 !important;
+  background: var(--ui-tone-0b0e14) !important;
   border: none !important;
-  border-bottom: 1px solid #1A2030 !important;
-  color: #A0A0A0 !important;
+  border-bottom: 1px solid var(--ui-tone-1a2030) !important;
+  color: var(--ui-text-tone-a0a0a0) !important;
 }
 
 .react-flow__controls-button:hover {
-  background: #131720 !important;
-  color: #FFFFFF !important;
+  background: var(--ui-tone-131720) !important;
+  color: var(--ui-tone-ffffff) !important;
 }
 
 .react-flow__controls-button:last-child {
@@ -713,7 +742,7 @@ body {
 
   0%,
   100% {
-    box-shadow: 0 0 0 1px rgba(80, 80, 80, 0.08), 0 2px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 1px rgb(var(--ui-tone-505050-rgb) / 0.08), 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
   }
 
   20%,
@@ -723,7 +752,7 @@ body {
 
   37%,
   72% {
-    box-shadow: 0 0 0 1px rgba(80, 80, 80, 0.08), 0 2px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 1px rgb(var(--ui-tone-505050-rgb) / 0.08), 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
   }
 }
 
@@ -750,17 +779,17 @@ body {
 
   0%,
   100% {
-    color: #6A7080;
+    color: var(--ui-text-tone-6a7080);
   }
 
   20%,
   55% {
-    color: #f87171;
+    color: var(--ui-accent-f87171);
   }
 
   37%,
   72% {
-    color: #6A7080;
+    color: var(--ui-text-tone-6a7080);
   }
 }
 
@@ -783,32 +812,32 @@ body {
 /* ── Node identify blink (triggered from group toolbar job list) ── */
 /* Applied via an injected <style> tag (not via classList) so React can't wipe it */
 @keyframes node-identify-input-blink {
-  0%, 100% { box-shadow: 0 2px 16px rgba(0,0,0,0.5); border-color: transparent; }
-  18%       { box-shadow: 0 0 0 3px rgba(45,212,191,0.55), 0 0 30px rgba(45,212,191,0.15); border-color: rgba(45,212,191,0.65); }
-  35%       { box-shadow: 0 2px 16px rgba(0,0,0,0.5); border-color: transparent; }
-  58%       { box-shadow: 0 0 0 2px rgba(45,212,191,0.35), 0 0 20px rgba(45,212,191,0.08); border-color: rgba(45,212,191,0.45); }
-  75%       { box-shadow: 0 2px 16px rgba(0,0,0,0.5); border-color: transparent; }
+  0%, 100% { box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity))); border-color: transparent; }
+  18%       { box-shadow: 0 0 0 3px rgb(var(--ui-accent-2dd4bf-rgb) / 0.55), 0 0 30px rgb(var(--ui-accent-2dd4bf-rgb) / 0.15); border-color: rgb(var(--ui-accent-2dd4bf-rgb) / 0.65); }
+  35%       { box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity))); border-color: transparent; }
+  58%       { box-shadow: 0 0 0 2px rgb(var(--ui-accent-2dd4bf-rgb) / 0.35), 0 0 20px rgb(var(--ui-accent-2dd4bf-rgb) / 0.08); border-color: rgb(var(--ui-accent-2dd4bf-rgb) / 0.45); }
+  75%       { box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity))); border-color: transparent; }
 }
 
 @keyframes node-identify-blink {
   0%, 100% {
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
     border-color: transparent;
   }
   18% {
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.75), 0 0 30px rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 0 3px rgb(var(--ui-ink-rgb) / 0.75), 0 0 30px rgb(var(--ui-ink-rgb) / 0.2);
+    border-color: rgb(var(--ui-ink-rgb) / 0.8);
   }
   35% {
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
     border-color: transparent;
   }
   58% {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 2px rgb(var(--ui-ink-rgb) / 0.5), 0 0 20px rgb(var(--ui-ink-rgb) / 0.12);
+    border-color: rgb(var(--ui-ink-rgb) / 0.5);
   }
   75% {
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
     border-color: transparent;
   }
 }
@@ -853,9 +882,9 @@ body {
 .toolbar-btn {
   font-size: 13px;
   font-weight: 500;
-  color: #A0A0A0;
-  background: #0B0E14;
-  border: 1px solid #1E2840;
+  color: var(--ui-text-tone-a0a0a0);
+  background: var(--ui-tone-0b0e14);
+  border: 1px solid var(--ui-tone-1e2840);
   border-radius: 6px;
   padding: 5px 12px;
   cursor: pointer;
@@ -864,8 +893,8 @@ body {
 }
 
 .toolbar-btn:hover:not(:disabled) {
-  color: #FFFFFF;
-  border-color: #243050;
+  color: var(--ui-tone-ffffff);
+  border-color: var(--ui-tone-243050);
 }
 
 .toolbar-btn:disabled {
@@ -876,9 +905,9 @@ body {
 .toolbar-btn-primary {
   font-size: 13px;
   font-weight: 500;
-  color: #FFFFFF;
-  background: #2DD4BF;
-  border: 1px solid #2DD4BF;
+  color: var(--ui-tone-ffffff);
+  background: var(--ui-accent-2dd4bf);
+  border: 1px solid var(--ui-accent-2dd4bf);
   border-radius: 6px;
   padding: 5px 14px;
   cursor: pointer;
@@ -887,9 +916,9 @@ body {
 }
 
 .toolbar-btn-primary:hover:not(:disabled) {
-  background: #2DD4BF;
-  border-color: #2DD4BF;
-  box-shadow: 0 0 12px rgba(45, 212, 191, 0.35);
+  background: var(--ui-accent-2dd4bf);
+  border-color: var(--ui-accent-2dd4bf);
+  box-shadow: 0 0 12px rgb(var(--ui-accent-2dd4bf-rgb) / 0.35);
 }
 
 .toolbar-btn-primary:disabled {
@@ -899,23 +928,23 @@ body {
 
 /* ── Video Generator node — subtle border ────────────── */
 .video-node-card.node-card {
-  border-color: #1C2436;
-  box-shadow: 0 0 0 1px rgba(80, 80, 80, 0.08), 0 2px 16px rgba(0, 0, 0, 0.5);
+  border-color: var(--ui-tone-1c2436);
+  box-shadow: 0 0 0 1px rgb(var(--ui-tone-505050-rgb) / 0.08), 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
 }
 
 .video-node-card.node-card:hover {
-  border-color: #2A3550;
-  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.12), 0 2px 20px rgba(0, 0, 0, 0.6);
+  border-color: var(--ui-tone-2a3550);
+  box-shadow: 0 0 0 1px rgb(var(--ui-accent-2dd4bf-rgb) / 0.12), 0 2px 20px rgb(var(--ui-shadow-rgb)/calc(0.6*var(--ui-shadow-opacity)));
 }
 
 .react-flow__node.selected .video-node-card.node-card {
-  border-color: #2DD4BF !important;
-  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.25), 0 2px 16px rgba(0, 15, 30, 0.5);
+  border-color: var(--ui-accent-2dd4bf) !important;
+  box-shadow: 0 0 0 1px rgb(var(--ui-accent-2dd4bf-rgb) / 0.25), 0 2px 16px rgb(var(--ui-tone-000f1e-rgb) / 0.5);
 }
 
 .react-flow__node.node-ancestor .video-node-card.node-card {
-  border-color: #2DD4BF !important;
-  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.15), 0 0 18px rgba(0, 0, 0, 0.5);
+  border-color: var(--ui-accent-2dd4bf) !important;
+  box-shadow: 0 0 0 1px rgb(var(--ui-accent-2dd4bf-rgb) / 0.15), 0 0 18px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)));
 }
 
 /* ── Carousel slide ─────────────────────────────────────────────────────── */
@@ -1144,9 +1173,9 @@ body {
   width: 50%;
   background: linear-gradient(to right,
       transparent 0%,
-      rgba(255, 255, 255, 0.13) 30%,
-      rgba(255, 255, 255, 0.28) 50%,
-      rgba(255, 255, 255, 0.13) 70%,
+      rgb(var(--ui-ink-rgb) / 0.13) 30%,
+      rgb(var(--ui-ink-rgb) / 0.28) 50%,
+      rgb(var(--ui-ink-rgb) / 0.13) 70%,
       transparent 100%);
   animation: upload-shimmer 1.4s ease-in-out infinite;
   pointer-events: none;
@@ -1176,11 +1205,11 @@ body {
 .node-card.node-generating {
   border: 2px solid transparent;
   background:
-    linear-gradient(#141820, #141820) padding-box,
+    linear-gradient(var(--ui-tone-141820), var(--ui-tone-141820)) padding-box,
     conic-gradient(
       from var(--border-angle, 0deg),
-      rgba(45, 212, 191, 0.05) 0deg,
-      rgba(45, 212, 191, 0.05) 150deg,
+      rgb(var(--ui-accent-2dd4bf-rgb) / 0.05) 0deg,
+      rgb(var(--ui-accent-2dd4bf-rgb) / 0.05) 150deg,
       #00266A 200deg,
       #005FCC 250deg,
       #00AEFF 305deg,
@@ -1193,8 +1222,8 @@ body {
 
 /* ── Pipeline queued state ───────────────────────────────────────────────── */
 @keyframes node-queued-pulse {
-  0%, 100% { border-color: rgba(148, 163, 184, 0.18); box-shadow: 0 2px 16px rgba(0,0,0,0.5); }
-  50%       { border-color: rgba(148, 163, 184, 0.5);  box-shadow: 0 2px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(148,163,184,0.15); }
+  0%, 100% { border-color: rgb(var(--ui-tone-94a3b8-rgb) / 0.18); box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity))); }
+  50%       { border-color: rgb(var(--ui-tone-94a3b8-rgb) / 0.5);  box-shadow: 0 2px 16px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity))), 0 0 0 1px rgb(var(--ui-tone-94a3b8-rgb) / 0.15); }
 }
 
 .node-card.node-queued {
@@ -1206,7 +1235,7 @@ body {
    no reserved gutter, no macOS mode-switch on hover) */
 .prompt-ta {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: rgb(var(--ui-ink-rgb) / 0.15) transparent;
 }
 
 /* Suppress the always-visible WebKit classic track that causes the black bar */
@@ -1228,13 +1257,13 @@ body {
 
 .mention-chip {
   display: inline;
-  background: rgba(255, 255, 255, 0.13);
+  background: rgb(var(--ui-ink-rgb) / 0.13);
   border-radius: 4px;
-  color: #FFFFFF;
+  color: var(--ui-tone-ffffff);
   padding: 2px 0;
   pointer-events: auto;
   /* shadows stay well under space-char width (~3-4 px) so the natural space
      character creates a visible gap to surrounding text, and the caret lands
      outside the chip */
-  box-shadow: -2px 0 0 rgba(255, 255, 255, 0.13), 2px 0 0 rgba(255, 255, 255, 0.13);
+  box-shadow: -2px 0 0 rgb(var(--ui-ink-rgb) / 0.13), 2px 0 0 rgb(var(--ui-ink-rgb) / 0.13);
 }

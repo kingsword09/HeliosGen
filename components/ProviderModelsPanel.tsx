@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
-import { Plus, RefreshCw } from "lucide-react";
+import { Check, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { ProviderConfig } from "@/lib/providerConfig";
 import { newProviderModel, validateProviderModels, type DiscoveredModel, type OnlineModel, type OnlineModelCatalog, type ProviderModel, type ProviderModelConnection, type ProviderModelKind } from "@/lib/providerModelConfig";
 import { hasModelParameters, MODEL_PROTOCOL_LABELS, providerModelProtocol } from "@/lib/providerConnection";
 import ModelConnectionEditor from "@/components/ModelConnectionEditor";
+import { MODEL_PARAMETER_FIELDS, MODEL_PARAMETER_PRESETS, modelParameterPreset, resolveModelParameters } from "@/lib/modelParameterPresets";
 
 const KIND_LABELS = { image: "图片", text: "对话", video: "视频" };
 const HANDLE_LABELS = [{ id: "startFrame", label: "首帧图片" }, { id: "endFrame", label: "尾帧图片" }, { id: "videoRef", label: "视频延续" }, { id: "referenceVideo", label: "参考视频" }, { id: "audioRef", label: "参考音频" }] as const;
@@ -21,36 +24,48 @@ function CapabilityToggle({ label, checked, onChange, children }: { label: strin
   return <FieldGroup className="gap-2"><Field orientation="horizontal"><FieldLabel id={`${id}-label`} htmlFor={id}>{label}</FieldLabel><Switch id={id} aria-labelledby={`${id}-label`} checked={checked} onCheckedChange={onChange} /></Field>{checked && children}</FieldGroup>;
 }
 
-function ModelEditor({ initial, config, onApply, onCancel, onDirtyChange }: { initial: ProviderModel; config: ProviderConfig; onApply: (model: ProviderModel) => Promise<void>; onCancel: () => void; onDirtyChange?: (dirty: boolean) => void }) {
+export function ModelEditor({ initial, config, onApply, onCancel, onDirtyChange }: { initial: ProviderModel; config: ProviderConfig; onApply: (model: ProviderModel) => Promise<void>; onCancel: () => void; onDirtyChange?: (dirty: boolean) => void }) {
   const id = useId();
-  const editorRef = useRef<HTMLFieldSetElement>(null);
-  useEffect(() => { editorRef.current?.scrollIntoView({ block: "start", behavior: "instant" }); }, []);
-  const [model, setModel] = useState(initial);
-  const [ratios, setRatios] = useState(initial.ratios.some((ratio) => ratio !== "auto") ? initial.ratios.join(", ") : "");
-  const [sizes, setSizes] = useState(Object.entries(initial.sizeMap).map(([ratio, size]) => `${ratio}=${size}`).join(", "));
-  const [qualities, setQualities] = useState(initial.qualityOptions.join(", "));
-  const [durations, setDurations] = useState(initial.durations.join(", "));
-  const [resolutions, setResolutions] = useState(initial.resolutions.join(", "));
-  const [ratioEnabled, setRatioEnabled] = useState(initial.ratios.some((ratio) => ratio !== "auto"));
-  const [qualityEnabled, setQualityEnabled] = useState(initial.qualityOptions.length > 0);
-  const [durationEnabled, setDurationEnabled] = useState(initial.durations.length > 0);
-  const [resolutionEnabled, setResolutionEnabled] = useState(initial.resolutions.length > 0);
-  const [custom, setCustom] = useState(JSON.stringify({ parameterKeys: initial.parameterKeys, extraBody: initial.extraBody }, null, 2));
+  const [startingModel] = useState(() => resolveModelParameters(initial, providerModelProtocol(config, initial)));
+  const [model, setModel] = useState(startingModel);
+  const [ratios, setRatios] = useState(startingModel.ratios.some((ratio) => ratio !== "auto") ? startingModel.ratios.join(", ") : "");
+  const [sizes, setSizes] = useState(Object.entries(startingModel.sizeMap).map(([ratio, size]) => `${ratio}=${size}`).join(", "));
+  const [qualities, setQualities] = useState(startingModel.qualityOptions.join(", "));
+  const [durations, setDurations] = useState(startingModel.durations.join(", "));
+  const [resolutions, setResolutions] = useState(startingModel.resolutions.join(", "));
+  const [ratioEnabled, setRatioEnabled] = useState(startingModel.ratios.some((ratio) => ratio !== "auto"));
+  const [qualityEnabled, setQualityEnabled] = useState(startingModel.qualityOptions.length > 0);
+  const [durationEnabled, setDurationEnabled] = useState(startingModel.durations.length > 0);
+  const [resolutionEnabled, setResolutionEnabled] = useState(startingModel.resolutions.length > 0);
+  const [custom, setCustom] = useState(JSON.stringify({ parameterKeys: startingModel.parameterKeys, extraBody: startingModel.extraBody }, null, 2));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [connectionError, setConnectionError] = useState("");
-  const [original] = useState({ model: JSON.stringify(initial), ratios, sizes, qualities, durations, resolutions, ratioEnabled, qualityEnabled, durationEnabled, resolutionEnabled, custom });
+  const [original] = useState({ model: JSON.stringify(startingModel), ratios, sizes, qualities, durations, resolutions, ratioEnabled, qualityEnabled, durationEnabled, resolutionEnabled, custom });
   const dirty = !!connectionError || (!config.models.some((entry) => entry.id === initial.id) && !!initial.apiId) || JSON.stringify(model) !== original.model || ratios !== original.ratios || sizes !== original.sizes || qualities !== original.qualities || durations !== original.durations || resolutions !== original.resolutions || ratioEnabled !== original.ratioEnabled || qualityEnabled !== original.qualityEnabled || durationEnabled !== original.durationEnabled || resolutionEnabled !== original.resolutionEnabled || custom !== original.custom;
   useEffect(() => { onDirtyChange?.(dirty); return () => onDirtyChange?.(false); }, [dirty, onDirtyChange]);
   const protocol = providerModelProtocol(config, model);
+  const preset = modelParameterPreset(model, protocol);
+  const sizeAlternative = MODEL_PARAMETER_PRESETS.find((entry) => entry.id === preset?.sizeAlternative);
   const staleParameters = !!model.parameterProtocol && model.parameterProtocol !== protocol && hasModelParameters(model);
   const usesSizes = model.kind === "image" && protocol === "openai" && (!model.parameterKeys.aspectRatio || model.parameterKeys.aspectRatio === "size");
+  function replaceParameters(next: ProviderModel) {
+    setModel(next);
+    setRatios(next.ratios.some((ratio) => ratio !== "auto") ? next.ratios.join(", ") : "");
+    setSizes(Object.entries(next.sizeMap).map(([ratio, size]) => `${ratio}=${size}`).join(", "));
+    setQualities(next.qualityOptions.join(", ")); setDurations(next.durations.join(", ")); setResolutions(next.resolutions.join(", "));
+    setRatioEnabled(next.ratios.some((ratio) => ratio !== "auto")); setQualityEnabled(next.qualityOptions.length > 0); setDurationEnabled(next.durations.length > 0); setResolutionEnabled(next.resolutions.length > 0);
+    setCustom(JSON.stringify({ parameterKeys: next.parameterKeys, extraBody: next.extraBody }, null, 2)); setError(null);
+  }
   function resetParameters(connection: ProviderModelConnection | undefined) {
-    const next = { ...newProviderModel(model.kind, model.apiId, model.name), id: model.id, enabled: model.enabled, promptMaxLength: model.promptMaxLength, connection };
-    setModel({ ...next, parameterProtocol: providerModelProtocol(config, next) });
-    setRatios(""); setSizes(""); setQualities(""); setDurations(""); setResolutions("");
-    setRatioEnabled(false); setQualityEnabled(false); setDurationEnabled(false); setResolutionEnabled(false);
-    setCustom(JSON.stringify({ parameterKeys: {}, extraBody: {} }, null, 2)); setConnectionError(""); setError(null);
+    const next = { ...newProviderModel(model.kind, model.apiId, model.name), id: model.id, enabled: model.enabled, connection, parameterPreset: "auto" };
+    replaceParameters(resolveModelParameters(next, providerModelProtocol(config, next)));
+    setConnectionError("");
+  }
+  function changeApiId(apiId: string) {
+    const next = { ...model, apiId, name: model.name === model.apiId ? apiId : model.name };
+    if (model.parameterPreset === "auto") replaceParameters(resolveModelParameters(next, protocol));
+    else setModel(next);
   }
   function changeProtocol(selected: ProviderModelConnection["protocol"]) {
     const nextConnection = { ...model.connection, protocol: selected };
@@ -81,23 +96,52 @@ function ModelEditor({ initial, config, onApply, onCancel, onDirtyChange }: { in
         sizeMap: Object.fromEntries(sizeEntries), qualityOptions: qualityEnabled ? split(qualities) : [],
         durations: durationEnabled ? split(durations).map(Number) : [], resolutions: resolutionEnabled ? split(resolutions) : [],
         parameterKeys: extra.parameterKeys ?? {}, extraBody: extra.extraBody ?? {}, parameterProtocol: protocol }]);
+      if (validated.parameterPreset !== "custom") {
+        const defaults = resolveModelParameters(model, protocol);
+        if (MODEL_PARAMETER_FIELDS.some((key) => JSON.stringify(validated[key]) !== JSON.stringify(defaults[key]))) validated.parameterPreset = "custom";
+      }
       await onApply(validated);
     } catch (failure) { setError(failure instanceof Error ? failure.message : "无法保存模型。"); }
     finally { setSubmitting(false); }
   }
+  function cancel() {
+    if (submitting || (dirty && !window.confirm("当前模型参数尚未保存，确定放弃更改吗？"))) return false;
+    onCancel();
+    return true;
+  }
   return (
-    <FieldSet ref={editorRef} disabled={submitting} className="rounded-lg border border-border p-3" onKeyDown={(event) => { if (event.key === "Enter" && event.target instanceof HTMLInputElement) { event.preventDefault(); if (!submitting && model.apiId.trim()) void apply(); } }}>
-      <FieldLegend>{config.name} · {KIND_LABELS[model.kind]}模型</FieldLegend>
-      <FieldGroup>
-        <Field><FieldLabel htmlFor={`${id}-api-id`}>模型 ID（必填）</FieldLabel><Input id={`${id}-api-id`} value={model.apiId} onChange={(event) => setModel({ ...model, apiId: event.target.value })} placeholder="服务商提供的完整模型 ID" /><FieldDescription>只填这一项就能保存；参数不确定时保持关闭，交给服务商使用默认值。</FieldDescription></Field>
+    <Dialog open onOpenChange={(open, details) => { if (!open && !cancel()) details.cancel(); }}>
+      <DialogContent closeButtonLabel="关闭模型编辑" showCloseButton={!submitting} className="provider-settings flex max-h-[calc(100%_-_2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 border-b border-border p-4 pr-12">
+          <DialogTitle>{config.models.some((entry) => entry.id === initial.id) ? "编辑" : "添加"}{KIND_LABELS[model.kind]}模型</DialogTitle>
+          <DialogDescription>供应商：{config.name}。保存后生效，取消不会更改已有配置。</DialogDescription>
+        </DialogHeader>
+        <FieldSet disabled={submitting} className="contents" onKeyDown={(event) => { if (event.key === "Enter" && event.target instanceof HTMLInputElement) { event.preventDefault(); if (!submitting && model.apiId.trim()) void apply(); } }}>
+      <FieldGroup className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+        <Field><FieldLabel htmlFor={`${id}-api-id`}>模型 ID（必填）</FieldLabel><Input id={`${id}-api-id`} value={model.apiId} onChange={(event) => changeApiId(event.target.value)} placeholder="服务商提供的完整模型 ID" /><FieldDescription>已知模型按 ID 和接口自动配置参数；自定义别名可选择原模型预设，不需要重写实际请求的模型名。</FieldDescription></Field>
         <ModelConnectionEditor key={protocol} config={config} model={model} onChange={(connection) => setModel({ ...model, connection })} onProtocolChange={changeProtocol} onValidationChange={setConnectionError} />
         {staleParameters && <Field><FieldDescription>供应商默认接口已改变，此模型的旧参数不能直接复用。重置后，按 {MODEL_PROTOCOL_LABELS[protocol]} 文档重新启用需要的参数。</FieldDescription><Button type="button" variant="outline" size="sm" onClick={() => resetParameters(model.connection)}>重置旧接口参数</Button></Field>}
+        <Field>
+          <FieldLabel htmlFor={`${id}-preset`}>模型参数来源</FieldLabel>
+          <NativeSelect id={`${id}-preset`} value={model.parameterPreset ?? "auto"} onChange={(event) => {
+            const next = { ...model, parameterPreset: event.target.value };
+            replaceParameters(event.target.value === "custom" ? next : resolveModelParameters(next, protocol));
+          }}>
+            <NativeSelectOption value="auto">按模型 ID 自动识别</NativeSelectOption>
+            <NativeSelectOption value="custom">自定义参数（保留当前配置）</NativeSelectOption>
+            {MODEL_PARAMETER_PRESETS.filter((entry) => entry.kind === model.kind && entry.protocol === protocol).map((entry) => <NativeSelectOption key={entry.id} value={entry.id}>{entry.name}</NativeSelectOption>)}
+          </NativeSelect>
+          <FieldDescription>{preset ? `已载入 ${preset.name}：${model.ratios.join("、")}；${model.qualityOptions.length ? `画质 ${model.qualityOptions.join(" / ")}` : "使用默认画质"}；最多 ${model.maxImages} 张参考图。可直接保存使用；手动调整后会保留为自定义配置。` : model.parameterPreset === "custom" ? "保留手动配置，不会被自动预设覆盖。可以选择预设恢复默认参数。" : "未识别到当前接口下的已知模型。若这是映射后的别名，请选择实际原模型预设；否则只按上游文档配置，不猜测支持能力。"}</FieldDescription>
+          {preset?.description && <FieldDescription>{preset.description}</FieldDescription>}
+          {sizeAlternative && <div><Button type="button" variant="outline" size="sm" onClick={() => replaceParameters(resolveModelParameters({ ...model, parameterPreset: sizeAlternative.id }, protocol))}>{sizeAlternative.parameters.ratios?.includes("16:9") ? "启用扩展比例" : "使用标准尺寸"}</Button></div>}
+          {preset && usesSizes && <details><summary className="cursor-pointer text-sm">查看预设的实际图片尺寸</summary><dl className="mt-3 grid grid-cols-2 gap-2 text-xs">{Object.entries(model.sizeMap).map(([ratio, size]) => <div key={ratio} className="flex items-center justify-between gap-2 rounded-md border border-border px-2 py-1.5"><dt>{ratio === "auto" ? "自动" : ratio}</dt><dd className="text-muted-foreground">{size === "auto" ? "模型决定" : size}</dd></div>)}</dl></details>}
+        </Field>
         <details><summary className="cursor-pointer text-sm">显示名称与可用状态（可选）</summary><FieldGroup className="mt-4">
           <Field><FieldLabel htmlFor={`${id}-name`}>显示名称</FieldLabel><Input id={`${id}-name`} value={model.name} onChange={(event) => setModel({ ...model, name: event.target.value })} placeholder="留空使用模型 ID" /></Field>
           <CapabilityToggle label="启用此模型" checked={model.enabled} onChange={(enabled) => setModel({ ...model, enabled })} />
         </FieldGroup></details>
-        <details><summary className="cursor-pointer text-sm">支持的参数（按模型文档启用）</summary><FieldGroup className="mt-4">
-          <FieldDescription>只开启上游明确支持的参数。关闭后，生成界面会隐藏对应选项，请求也不会携带该参数。这里的值不会赋予模型新能力。</FieldDescription>
+        <details><summary className="cursor-pointer text-sm">支持的参数{preset ? "（已自动配置，可调整）" : "（按模型文档配置）"}</summary><FieldGroup className="mt-4">
+          <FieldDescription>已知模型无需逐项启用。服务商能力不同时可调整；关闭后生成界面会隐藏对应选项，请求也不会携带该参数。</FieldDescription>
           {model.kind !== "text" && <>
             <CapabilityToggle label={usesSizes ? "图片尺寸" : "画面比例"} checked={ratioEnabled} onChange={setRatioEnabled}>
               <Field><FieldLabel htmlFor={`${id}-ratios`}>{usesSizes ? "比例与实际像素尺寸" : "支持的比例"}</FieldLabel><Input id={`${id}-ratios`} value={usesSizes ? sizes : ratios} onChange={(event) => usesSizes ? setSizes(event.target.value) : setRatios(event.target.value)} placeholder={usesSizes ? "1:1=1024x1024, 3:2=1536x1024" : "1:1, 16:9, 9:16"} /><FieldDescription>{usesSizes ? "必须填写上游支持的实际 size，不会把 16:9 擅自换算成其他比例。" : "逗号分隔，第一项为默认值。"}</FieldDescription></Field>
@@ -128,10 +172,15 @@ function ModelEditor({ initial, config, onApply, onCancel, onDirtyChange }: { in
           setCustom(event.target.value);
           try { const parsed = JSON.parse(event.target.value); if (parsed?.parameterKeys && typeof parsed.parameterKeys === "object") setModel({ ...model, parameterKeys: parsed.parameterKeys }); } catch {}
         }} rows={7} /><FieldDescription>parameterKeys 可映射 aspectRatio、quality、duration、resolution、sound、maxOutputTokens；extraBody 添加服务商要求的固定参数。留空对象即可，详见 README。</FieldDescription></Field></details>
-        {error && <Field data-invalid><FieldError role="alert">{error}</FieldError></Field>}
-        <div className="flex gap-2"><Button type="button" size="sm" onClick={apply} disabled={submitting || !model.apiId.trim()}>{submitting ? "保存中…" : "保存模型"}</Button><Button type="button" variant="outline" size="sm" onClick={onCancel}>取消</Button></div>
       </FieldGroup>
-    </FieldSet>
+          {error && <Field data-invalid className="shrink-0 px-4 pb-3"><FieldError role="alert">{error}</FieldError></Field>}
+          <DialogFooter className="mx-0 mb-0 shrink-0">
+            <Button type="button" variant="outline" size="sm" onClick={cancel}>取消</Button>
+            <Button type="button" size="sm" onClick={apply} disabled={submitting || !model.apiId.trim()}>{submitting ? "保存中…" : "保存模型"}</Button>
+          </DialogFooter>
+        </FieldSet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -143,6 +192,7 @@ export default function ProviderModelsPanel({ config, kind, onSave, onDirtyChang
   const [fetched, setFetched] = useState(false);
   const [addingModels, setAddingModels] = useState(false);
   const [query, setQuery] = useState("");
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<OnlineModelCatalog | null>(null);
@@ -152,7 +202,9 @@ export default function ProviderModelsPanel({ config, kind, onSave, onDirtyChang
   const [catalogQuery, setCatalogQuery] = useState("");
   const controller = useRef<AbortController | null>(null);
   const dirtyRef = useRef(false);
+  const savingRef = useRef(false);
   const catalogController = useRef<AbortController | null>(null);
+  const autoPull = useRef(config.models.length === 0);
   const models = config.models.filter((model) => model.kind === kind);
   const defaultId = config[kind === "text" ? "chatModel" : kind === "image" ? "imageModel" : "videoModel"];
   const reportDirty = useCallback((dirty: boolean) => { dirtyRef.current = dirty; onDirtyChange?.(dirty); }, [onDirtyChange]);
@@ -174,7 +226,7 @@ export default function ProviderModelsPanel({ config, kind, onSave, onDirtyChang
   }, [config.id]);
   useEffect(() => {
     let cancelled = false;
-    queueMicrotask(() => { if (!cancelled) void pull(); });
+    queueMicrotask(() => { if (!cancelled && autoPull.current) void pull(); });
     return () => { cancelled = true; controller.current?.abort(); catalogController.current?.abort(); };
   }, [pull]);
   async function loadCatalog(force = false) {
@@ -201,9 +253,13 @@ export default function ProviderModelsPanel({ config, kind, onSave, onDirtyChang
     setEditing(null);
   }
   async function action(run: () => Promise<void>) {
+    if (savingRef.current) return;
     if (dirtyRef.current && !window.confirm("当前模型参数尚未保存，继续操作会放弃更改，确定继续吗？")) return;
+    savingRef.current = true;
+    setSaving(true);
     setError(null);
     try { await run(); } catch (failure) { setError(failure instanceof Error ? failure.message : "无法保存模型。"); }
+    finally { savingRef.current = false; setSaving(false); }
   }
   const filtered = discovered.filter((model) => (!model.suggestedKind || model.suggestedKind === kind) && `${model.id} ${model.name}`.toLowerCase().includes(query.toLowerCase()));
   const catalogModels = (catalog?.models ?? []).filter((model) => model.kind === kind && `${model.id} ${model.name}`.toLowerCase().includes(catalogQuery.toLowerCase()));
@@ -213,10 +269,25 @@ export default function ProviderModelsPanel({ config, kind, onSave, onDirtyChang
       <FieldDescription>已启用的模型可直接用于生成，无需切换供应商。默认模型只在当前供应商内生效。</FieldDescription>
       <FieldGroup>
         <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" disabled={fetching} onClick={pull}><RefreshCw data-icon="inline-start" />{fetching ? "拉取中…" : "拉取模型"}</Button><Button type="button" variant="outline" size="sm" onClick={() => edit(newProviderModel(kind))}><Plus data-icon="inline-start" />手动添加</Button></div>
+        <FieldDescription>{config.models.length ? "已有模型配置，不会自动请求服务商的模型列表。需要发现更多模型时可手动拉取；未开放列表接口的服务商可直接手动添加。" : "模型列表仅用于发现模型 ID，不提供完整参数能力。接口不可用时可手动添加，已知模型会按内置预设配置参数。"}</FieldDescription>
         {fetched && <details open={addingModels} onToggle={(event) => setAddingModels(event.currentTarget.open)}><summary className="cursor-pointer text-sm">从服务商列表添加模型（{discovered.length}）</summary><FieldGroup className="mt-3">
-          <Field><FieldLabel htmlFor={`${id}-search`}>服务商{KIND_LABELS[kind]}模型（{filtered.length}）</FieldLabel><Input id={`${id}-search`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索名称或模型 ID" /><FieldDescription>按名称初步分类，未知类型保留显示。模型列表不包含完整参数规格；未确认的参数默认不发送。{notice}</FieldDescription></Field>
-          <div className="flex max-h-60 flex-col gap-2 overflow-y-auto" aria-label="服务商模型列表">
-            {filtered.map((model) => <div key={model.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-2"><div className="min-w-0"><p className="truncate text-sm">{model.name}</p><p className="truncate text-xs text-muted-foreground">{model.id}{model.suggestedKind ? ` · 推测为${KIND_LABELS[model.suggestedKind]}模型` : ""}</p></div><Button type="button" variant="outline" size="sm" disabled={models.some((entry) => entry.apiId === model.id)} onClick={() => action(() => apply(newProviderModel(kind, model.id, model.name)))}>{models.some((entry) => entry.apiId === model.id) ? "已添加" : `添加为${KIND_LABELS[kind]}`}</Button></div>)}
+          <Field><FieldLabel htmlFor={`${id}-search`}>服务商{KIND_LABELS[kind]}模型（{filtered.length}）</FieldLabel><Input id={`${id}-search`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索名称或模型 ID" /><FieldDescription>已知模型添加后自动配置参数；自定义别名可在编辑中选择原模型预设。未知能力不会猜测。{notice}</FieldDescription></Field>
+          <div className="flex flex-col gap-2" aria-label="服务商模型列表">
+            {filtered.map((model) => {
+              const configured = models.find((entry) => entry.apiId === model.id);
+              const label = configured ? `已添加${KIND_LABELS[kind]}模型 ${model.name}，点击移除` : `添加${KIND_LABELS[kind]}模型 ${model.name}`;
+              return <div key={model.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-2">
+                <div className="min-w-0"><p className="truncate text-sm">{model.name}</p><p className="truncate text-xs text-muted-foreground">{model.id}{model.suggestedKind ? ` · 推测为${KIND_LABELS[model.suggestedKind]}模型` : ""}</p></div>
+                <Button type="button" variant={configured ? "secondary" : "outline"} size="icon-sm" aria-label={label} title={label} aria-pressed={!!configured} disabled={saving} onClick={() => action(async () => {
+                  if (configured) {
+                    await onSave(config.models.filter((entry) => entry.id !== configured.id));
+                    if (editing?.id === configured.id) setEditing(null);
+                  } else {
+                    await apply(newProviderModel(kind, model.id, model.name));
+                  }
+                })}>{configured ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}</Button>
+              </div>;
+            })}
             {!filtered.length && <FieldDescription>没有匹配的模型，仍可手动添加。</FieldDescription>}
           </div>
         </FieldGroup></details>}
@@ -226,17 +297,20 @@ export default function ProviderModelsPanel({ config, kind, onSave, onDirtyChang
             const stale = model.parameterProtocol && model.parameterProtocol !== protocol && hasModelParameters(model);
             return <div key={model.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3">
               <div className="min-w-0"><p className="truncate text-sm">{model.name}{model.enabled && model.apiId === defaultId ? " · 供应商内默认" : ""}</p><p className="truncate text-xs text-muted-foreground">{model.apiId}{!model.enabled ? " · 已停用" : ""}</p><p className="text-xs text-muted-foreground">{MODEL_PROTOCOL_LABELS[protocol]} · {Object.keys(model.connection ?? {}).length ? "模型独立配置" : "跟随供应商"}{stale ? " · 参数待重新确认" : ""}</p></div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {model.enabled && model.apiId !== defaultId && <Button type="button" variant="outline" size="sm" onClick={() => action(() => onSave(config.models, model))}>设为供应商内默认</Button>}
-                <Switch aria-label={`启用模型 ${model.name}`} checked={model.enabled} onCheckedChange={(enabled) => action(() => onSave(config.models.map((entry) => entry.id === model.id ? { ...entry, enabled } : entry)))} />
-                <Button type="button" variant="outline" size="sm" onClick={() => edit(model)}>编辑</Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => action(async () => { if (!window.confirm(`确定移除模型「${model.name}」吗？`)) return; if (dirtyRef.current && !window.confirm("当前模型参数尚未保存，移除会放弃更改，确定继续吗？")) return; await onSave(config.models.filter((entry) => entry.id !== model.id)); if (editing?.id === model.id) setEditing(null); })}>移除</Button>
+                <div className="flex items-center gap-2">
+                  <Switch aria-label={`启用模型 ${model.name}`} title={model.enabled ? "点击停用模型" : "点击启用模型"} checked={model.enabled} onCheckedChange={(enabled) => action(() => onSave(config.models.map((entry) => entry.id === model.id ? { ...entry, enabled } : entry)))} />
+                  <span className="text-xs text-foreground" aria-hidden="true">{model.enabled ? "已启用" : "已停用"}</span>
+                </div>
+                <Button type="button" variant="outline" size="icon-sm" aria-label={`编辑模型 ${model.name}`} title="编辑模型" onClick={() => edit(model)}><Pencil data-icon="inline-start" /></Button>
+                <Button type="button" variant="destructive" size="icon-sm" aria-label={`移除模型 ${model.name}`} title="移除模型" onClick={() => action(async () => { if (!window.confirm(`确定移除模型「${model.name}」吗？`)) return; if (dirtyRef.current && !window.confirm("当前模型参数尚未保存，移除会放弃更改，确定继续吗？")) return; await onSave(config.models.filter((entry) => entry.id !== model.id)); if (editing?.id === model.id) setEditing(null); })}><Trash2 data-icon="inline-start" /></Button>
               </div>
             </div>;
           })}
           {!models.length && !editing && <FieldDescription>还没有{KIND_LABELS[kind]}模型。添加一个需要的模型就够了，其他类型可以不配置。</FieldDescription>}
         </div>
-        {editing && <ModelEditor key={editing.id} initial={editing} config={config} onApply={apply} onCancel={() => edit(null)} onDirtyChange={reportDirty} />}
+        {editing && <ModelEditor key={editing.id} initial={editing} config={config} onApply={apply} onCancel={() => setEditing(null)} onDirtyChange={reportDirty} />}
         {error && <Field data-invalid><FieldError role="alert">{error}</FieldError></Field>}
         <details open={catalogOpen} onToggle={(event) => {
           const open = event.currentTarget.open;

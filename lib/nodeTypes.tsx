@@ -8,13 +8,13 @@ export const NODE_META: Record<
   string,
   { accent: string; bg: string; bigIcon: React.ReactNode }
 > = {
-  promptNode:         { accent: "#4ade80", bg: "#052e16",  bigIcon: <MessageSquare size={18} strokeWidth={1.7} /> },
-  imageInputNode:     { accent: "#fb923c", bg: "#431407",  bigIcon: <Image         size={18} strokeWidth={1.7} /> },
-  videoInputNode:     { accent: "#60a5fa", bg: "#0c1a3b",  bigIcon: <Film          size={18} strokeWidth={1.7} /> },
-  generateNode:       { accent: "#2DD4BF", bg: "#001f1f",  bigIcon: <Sparkles      size={18} strokeWidth={1.7} /> },
-  assistantNode:      { accent: "#FBBF24", bg: "#1c1000",  bigIcon: <Bot           size={18} strokeWidth={1.7} /> },
-  videoGeneratorNode: { accent: "#5EEAD4", bg: "#042f2e",  bigIcon: <Clapperboard  size={18} strokeWidth={1.7} /> },
-  commentNode:        { accent: "#FACC15", bg: "#2a2005",  bigIcon: <StickyNote    size={18} strokeWidth={1.7} /> },
+  promptNode:         { accent: "var(--ui-accent-4ade80)", bg: "var(--ui-tone-052e16)",  bigIcon: <MessageSquare size={18} strokeWidth={1.7} /> },
+  imageInputNode:     { accent: "var(--ui-accent-fb923c)", bg: "var(--ui-tone-431407)",  bigIcon: <Image         size={18} strokeWidth={1.7} /> },
+  videoInputNode:     { accent: "var(--ui-accent-60a5fa)", bg: "var(--ui-tone-0c1a3b)",  bigIcon: <Film          size={18} strokeWidth={1.7} /> },
+  generateNode:       { accent: "var(--ui-accent-2dd4bf)", bg: "var(--ui-tone-001f1f)",  bigIcon: <Sparkles      size={18} strokeWidth={1.7} /> },
+  assistantNode:      { accent: "var(--ui-accent-fbbf24)", bg: "var(--ui-tone-1c1000)",  bigIcon: <Bot           size={18} strokeWidth={1.7} /> },
+  videoGeneratorNode: { accent: "var(--ui-accent-5eead4)", bg: "var(--ui-tone-042f2e)",  bigIcon: <Clapperboard  size={18} strokeWidth={1.7} /> },
+  commentNode:        { accent: "var(--ui-accent-facc15)", bg: "var(--ui-tone-2a2005)",  bigIcon: <StickyNote    size={18} strokeWidth={1.7} /> },
 };
 
 export const NODES: Array<{

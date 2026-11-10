@@ -1,3 +1,5 @@
+import { MODEL_PARAMETER_PRESETS } from "./modelParameterPresets";
+
 export type ProviderModelKind = "image" | "text" | "video";
 export type ModelProtocol = "openai" | "responses" | "gemini" | "anthropic" | "task";
 export interface ProviderModelConnection {
@@ -40,6 +42,7 @@ export interface ProviderModel {
   maxOutputTokens: number | null;
   connection?: ProviderModelConnection;
   parameterProtocol?: ModelProtocol;
+  parameterPreset?: string;
 }
 
 export function modelProtocols(kind: ProviderModelKind): ModelProtocol[] {
@@ -140,6 +143,10 @@ export function validateProviderModels(value: unknown): ProviderModel[] {
     if (input.parameterProtocol !== undefined) {
       if (!modelProtocols(model.kind).includes(input.parameterProtocol as ModelProtocol)) throw new Error("模型参数所属接口无效。");
       model.parameterProtocol = input.parameterProtocol as ModelProtocol;
+    }
+    if (input.parameterPreset !== undefined) {
+      if (typeof input.parameterPreset !== "string" || !["auto", "custom", ...MODEL_PARAMETER_PRESETS.filter((preset) => preset.kind === model.kind).map((preset) => preset.id)].includes(input.parameterPreset)) throw new Error("模型参数预设无效。");
+      model.parameterPreset = input.parameterPreset;
     }
     for (const key of ["enabled", "sound"] as const) {
       if (input[key] !== undefined && typeof input[key] !== "boolean") throw new Error(`Model ${key} must be a boolean.`);

@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useWorkflowStore, Toast } from "@/lib/store";
 
 const COLORS: Record<Toast["type"], { bg: string; border: string; icon: string }> = {
-  error:   { bg: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.3)",  icon: "rgba(239,68,68,0.9)"  },
-  success: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.3)", icon: "rgba(74,222,128,0.9)" },
-  info:    { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.3)", icon: "rgba(96,165,250,0.9)" },
+  error:   { bg: "color-mix(in srgb, var(--destructive) 12%, transparent)",  border: "color-mix(in srgb, var(--destructive) 30%, transparent)",  icon: "var(--destructive)"  },
+  success: { bg: "rgb(var(--ui-accent-4ade80-rgb) / 0.10)", border: "rgb(var(--ui-accent-4ade80-rgb) / 0.3)", icon: "rgb(var(--ui-accent-4ade80-rgb) / 0.9)" },
+  info:    { bg: "rgb(var(--ui-accent-60a5fa-rgb) / 0.10)", border: "rgb(var(--ui-accent-60a5fa-rgb) / 0.3)", icon: "rgb(var(--ui-accent-60a5fa-rgb) / 0.9)" },
 };
 
 const ICONS: Record<Toast["type"], string> = {
@@ -22,7 +22,7 @@ function DismissButton({ onDismiss }: { onDismiss: (e: React.MouseEvent) => void
       onClick={onDismiss}
       style={{
         background: "none", border: "none", cursor: "pointer",
-        color: "rgba(255,255,255,0.3)", padding: "0", flexShrink: 0, lineHeight: 1,
+        color: "rgb(var(--ui-ink-rgb) / max(0.3, var(--ui-text-min-opacity)))", padding: "0", flexShrink: 0, lineHeight: 1,
       }}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -44,9 +44,9 @@ function RichToastItem({ toast, onDismiss, onClick }: { toast: Toast; onDismiss:
         gap: "12px",
         padding: "14px 14px",
         borderRadius: "14px",
-        background: "rgba(28,28,30,0.96)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        boxShadow: "0 12px 36px rgba(0,0,0,0.6)",
+        background: "rgb(var(--ui-tone-1c1c1e-rgb) / 0.96)",
+        border: "1px solid rgb(var(--ui-ink-rgb) / 0.1)",
+        boxShadow: "0 12px 36px rgb(var(--ui-shadow-rgb)/calc(0.6*var(--ui-shadow-opacity)))",
         backdropFilter: "blur(20px)",
         width: "340px",
         animation: "toastIn 220ms cubic-bezier(0.22,1,0.36,1) both",
@@ -59,14 +59,14 @@ function RichToastItem({ toast, onDismiss, onClick }: { toast: Toast; onDismiss:
         style={{
           position: "absolute", top: "8px", right: "8px",
           width: "18px", height: "18px", borderRadius: "50%",
-          background: "rgba(255,255,255,0.1)",
+          background: "rgb(var(--ui-ink-rgb) / 0.1)",
           border: "none", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          color: "rgba(255,255,255,0.5)",
+          color: "rgb(var(--ui-ink-rgb) / max(0.5, var(--ui-text-min-opacity)))",
           transition: "background 120ms",
         }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.18)"; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.1)"; }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgb(var(--ui-ink-rgb) / 0.18)"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgb(var(--ui-ink-rgb) / 0.1)"; }}
       >
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
           <path d="M18 6 6 18M6 6l12 12" />
@@ -76,8 +76,8 @@ function RichToastItem({ toast, onDismiss, onClick }: { toast: Toast; onDismiss:
       {/* App icon */}
       <div style={{
         width: "44px", height: "44px", borderRadius: "10px",
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "rgb(var(--ui-ink-rgb) / 0.06)",
+        border: "1px solid rgb(var(--ui-ink-rgb) / 0.08)",
         display: "flex", alignItems: "center", justifyContent: "center",
         flexShrink: 0, overflow: "hidden",
       }}>
@@ -87,14 +87,14 @@ function RichToastItem({ toast, onDismiss, onClick }: { toast: Toast; onDismiss:
       {/* Text */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "2px", paddingRight: "12px" }}>
         <span style={{
-          fontSize: "13px", fontWeight: 600, color: "#fff",
+          fontSize: "13px", fontWeight: 600, color: "var(--ui-tone-ffffff)",
           letterSpacing: "-0.01em", lineHeight: 1.3,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
           {toast.title}
         </span>
         <span style={{
-          fontSize: "12px", color: "rgba(255,255,255,0.45)", lineHeight: 1.4,
+          fontSize: "12px", color: "rgb(var(--ui-ink-rgb) / max(0.45, var(--ui-text-min-opacity)))", lineHeight: 1.4,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
           {toast.preview}
@@ -118,7 +118,7 @@ function SimpleToastItem({ toast, onDismiss, onClick }: { toast: Toast; onDismis
         borderRadius: "10px",
         background: c.bg,
         border: `1px solid ${c.border}`,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+        boxShadow: "0 8px 24px rgb(var(--ui-shadow-rgb)/calc(0.4*var(--ui-shadow-opacity)))",
         backdropFilter: "blur(8px)",
         maxWidth: "360px",
         animation: "toastIn 200ms cubic-bezier(0.22,1,0.36,1) both",
@@ -137,7 +137,7 @@ function SimpleToastItem({ toast, onDismiss, onClick }: { toast: Toast; onDismis
       >
         <path d={ICONS[toast.type]} />
       </svg>
-      <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.85)", lineHeight: 1.45, flex: 1 }}>
+      <span style={{ fontSize: "13px", color: "rgb(var(--ui-ink-rgb) / 0.85)", lineHeight: 1.45, flex: 1 }}>
         {toast.message}
       </span>
       <DismissButton onDismiss={onDismiss} />

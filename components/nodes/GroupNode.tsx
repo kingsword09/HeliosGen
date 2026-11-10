@@ -54,9 +54,9 @@ function Btn({
       className={`h-7 flex items-center justify-center rounded-full transition-colors duration-150 ${
         label ? "px-2.5 gap-1.5" : "w-7"
       } ${
-        active ? "text-white bg-white/15" :
-        danger ? "text-white hover:text-red-400 hover:bg-red-400/10" :
-                 "text-white hover:bg-white/10"
+        active ? "text-foreground bg-foreground/15" :
+        danger ? "text-foreground hover:text-destructive hover:bg-destructive/10" :
+                 "text-foreground hover:bg-foreground/10"
       }`}
     >
       {children}
@@ -66,7 +66,7 @@ function Btn({
 }
 
 function Sep() {
-  return <span className="w-px h-4 bg-white/[0.08] mx-0.5 shrink-0" />;
+  return <span className="w-px h-4 bg-foreground/[0.08] mx-0.5 shrink-0" />;
 }
 
 // ── Lock overlay shown on the group itself when locked ─────────────────────────
@@ -75,7 +75,7 @@ function LockBadge({ color }: { color: string }) {
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
       <div
         className="w-8 h-8 rounded-full flex items-center justify-center"
-        style={{ background: `${color}20`, border: `1.5px solid ${color}50` }}
+        style={{ background: `color-mix(in srgb, ${color} 13%, transparent)`, border: `1.5px solid color-mix(in srgb, ${color} 31%, transparent)` }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -134,8 +134,8 @@ function InlineWarning({ messages }: { messages: string[] }) {
     >
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ display: "block", cursor: "default" }}>
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" fill="#ef4444" />
-        <line x1="12" y1="9" x2="12" y2="13" stroke="white" strokeWidth="2" strokeLinecap="round" />
-        <line x1="12" y1="17" x2="12.01" y2="17" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        <line x1="12" y1="9" x2="12" y2="13" stroke="rgb(var(--ui-ink-rgb))" strokeWidth="2" strokeLinecap="round" />
+        <line x1="12" y1="17" x2="12.01" y2="17" stroke="rgb(var(--ui-ink-rgb))" strokeWidth="2" strokeLinecap="round" />
       </svg>
       {visible && (
         <span
@@ -143,14 +143,14 @@ function InlineWarning({ messages }: { messages: string[] }) {
             position: "absolute",
             bottom: "calc(100% + 4px)",
             right: 0,
-            background: "#1A1A1A",
+            background: "var(--ui-tone-1a1a1a)",
             border: "1px solid rgba(239,68,68,0.3)",
             borderRadius: 6,
             padding: "4px 8px",
             whiteSpace: "nowrap",
             fontSize: 10,
-            color: "#CCCCCC",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.55)",
+            color: "var(--ui-tone-cccccc)",
+            boxShadow: "0 4px 14px rgb(var(--ui-shadow-rgb)/calc(0.55*var(--ui-shadow-opacity)))",
             zIndex: 200,
             pointerEvents: "none",
           }}
@@ -487,7 +487,7 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
       className="relative w-full h-full rounded-[10px]"
       style={{
         border: `2px solid ${color}`,
-        background: `${color}0d`,
+        background: `color-mix(in srgb, ${color} 5%, transparent)`,
         opacity: locked ? 0.85 : 1,
       }}
     >
@@ -528,10 +528,10 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
         className="flex items-center gap-0.5 px-1.5 py-1 node-action-bar-enter"
         style={{
           borderRadius: 999,
-          background: "rgba(16, 16, 16, 0.96)",
+          background: "rgb(var(--ui-tone-101010-rgb) / 0.96)",
           backdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.65), 0 1px 4px rgba(0,0,0,0.4)",
+          border: "1px solid rgb(var(--ui-ink-rgb) / 0.07)",
+          boxShadow: "0 4px 24px rgb(var(--ui-shadow-rgb)/calc(0.65*var(--ui-shadow-opacity))), 0 1px 4px rgb(var(--ui-shadow-rgb)/calc(0.4*var(--ui-shadow-opacity)))",
           whiteSpace: "nowrap",
           zIndex: 10,
         }}
@@ -585,9 +585,9 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); setColorPickerOpen((o) => !o); }}
                 title="Change color"
-                className="w-7 h-7 flex items-center justify-center rounded-full transition-colors duration-150 hover:bg-white/10"
+                className="w-7 h-7 flex items-center justify-center rounded-full transition-colors duration-150 hover:bg-foreground/10"
               >
-                <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ background: color }} />
+                <span className="w-3.5 h-3.5 rounded-full border border-foreground/20" style={{ background: color }} />
               </button>
 
               {colorPickerOpen && (
@@ -596,9 +596,9 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
                   className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex flex-row gap-1.5 p-2"
                   style={{
                     borderRadius: 999,
-                    background: "rgba(16,16,16,0.97)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                    background: "rgb(var(--ui-tone-101010-rgb) / 0.97)",
+                    border: "1px solid rgb(var(--ui-ink-rgb) / 0.08)",
+                    boxShadow: "0 8px 32px rgb(var(--ui-shadow-rgb)/calc(0.6*var(--ui-shadow-opacity)))",
                     whiteSpace: "nowrap",
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
@@ -614,7 +614,7 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
                       className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 shrink-0"
                       style={{
                         background: c,
-                        borderColor: color === c ? "white" : "transparent",
+                        borderColor: color === c ? "rgb(var(--ui-ink-rgb))" : "transparent",
                       }}
                     />
                   ))}
@@ -656,7 +656,7 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
             <Btn onClick={handleDownload} title="Download all outputs as ZIP">
               {isDownloading ? (
                 <svg width="13" height="13" viewBox="0 0 10 10" fill="none" style={{ animation: "spin 0.9s linear infinite" }}>
-                  <circle cx="5" cy="5" r="4" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" />
+                  <circle cx="5" cy="5" r="4" stroke="rgb(var(--ui-ink-rgb) / max(0.2, var(--ui-text-min-opacity)))" strokeWidth="1.5" />
                   <path d="M5 1 A4 4 0 0 1 9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               ) : (
@@ -675,7 +675,7 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
                 style={{
                   border: `1px solid ${pipelineRunning ? "rgba(45,212,191,0.5)" : "rgba(45,212,191,0.25)"}`,
                   background: pipelineRunning ? "rgba(45,212,191,0.18)" : "rgba(45,212,191,0.07)",
-                  color: readyJobCount === 0 ? "rgba(255,255,255,0.25)" : "rgba(45,212,191,0.9)",
+                  color: readyJobCount === 0 ? "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))" : "rgba(45,212,191,0.9)",
                   opacity: readyJobCount === 0 ? 0.45 : 1,
                 }}
               >
@@ -748,17 +748,17 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
                   className="absolute bottom-full mb-2 right-0 node-action-bar-enter"
                   style={{
                     borderRadius: 10,
-                    background: "rgba(14, 14, 14, 0.97)",
+                    background: "rgb(var(--ui-tone-0e0e0e-rgb) / 0.97)",
                     backdropFilter: "blur(12px)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                    boxShadow: "0 4px 24px rgba(0,0,0,0.65), 0 1px 4px rgba(0,0,0,0.4)",
+                    border: "1px solid rgb(var(--ui-ink-rgb) / 0.07)",
+                    boxShadow: "0 4px 24px rgb(var(--ui-shadow-rgb)/calc(0.65*var(--ui-shadow-opacity))), 0 1px 4px rgb(var(--ui-shadow-rgb)/calc(0.4*var(--ui-shadow-opacity)))",
                     minWidth: 200,
                     overflow: "hidden",
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                 >
-                  <div className="px-3 py-1.5 border-b border-white/[0.06]">
-                    <span className="text-[10px] font-medium text-white/30 uppercase tracking-widest">
+                  <div className="px-3 py-1.5 border-b border-foreground/[0.06]">
+                    <span className="text-[10px] font-medium text-[var(--ui-text-30)] uppercase tracking-widest">
                       Generate jobs
                     </span>
                   </div>
@@ -767,7 +767,7 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
                       key={job.genNodeId}
                       className="flex items-center gap-2 px-3 py-2 text-[11px] transition-colors duration-100"
                       style={{
-                        borderBottom: i < jobs.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                        borderBottom: i < jobs.length - 1 ? "1px solid rgb(var(--ui-ink-rgb) / 0.04)" : "none",
                         cursor: "pointer",
                       }}
                       onMouseDown={(e) => e.stopPropagation()}
@@ -776,21 +776,21 @@ export default function GroupNode({ id, data, selected }: NodeProps<GroupNodeTyp
                         flashNode(job.genNodeId);
                         job.allAncestorIds.forEach((aid) => flashNode(aid, "node-identify-input-blink"));
                       }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgb(var(--ui-ink-rgb) / 0.04)"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >
                       {/* Source icon */}
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--ui-ink-rgb) / max(0.35, var(--ui-text-min-opacity)))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                         <polyline points="14 2 14 8 20 8" />
                         <line x1="16" y1="13" x2="8" y2="13" />
                         <line x1="16" y1="17" x2="8" y2="17" />
                       </svg>
-                      <ScrollLabel text={job.sourceLabel} color="rgba(255,255,255,0.5)" />
+                      <ScrollLabel text={job.sourceLabel} color="rgb(var(--ui-ink-rgb) / max(0.5, var(--ui-text-min-opacity)))" />
 
                       {/* Arrow */}
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
-                        <path d="M2 6H10M10 6L7 3M10 6L7 9" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M2 6H10M10 6L7 3M10 6L7 9" stroke="rgb(var(--ui-ink-rgb) / max(0.2, var(--ui-text-min-opacity)))" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
                       {/* Target icon */}

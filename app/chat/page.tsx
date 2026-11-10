@@ -5,6 +5,9 @@ import { flushSync } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useChatSessionStore, type StoredMessage, type ChatSession } from "@/lib/chatSessionStore";
 import { getToken } from "@/lib/galleryUtils";
+import { assistantText } from "@/lib/assistantStream";
+import ChatAssets from "@/components/ChatAssets";
+import { useAssetDrafts } from "@/lib/sharedAssets";
 import type { ModelId } from "@/lib/models";
 import { useModelCatalog } from "@/lib/useModelCatalog";
 import { SYSTEM_PROMPT } from "@/lib/systemPrompt";
@@ -56,9 +59,9 @@ function ModelPicker({
         style={{
           display: "flex", alignItems: "center", gap: "5px",
           padding: "0 8px", height: "32px", borderRadius: "8px",
-          background: open ? "rgba(255,255,255,0.09)" : "transparent",
+          background: open ? "rgb(var(--ui-ink-rgb) / 0.09)" : "transparent",
           border: "1px solid transparent",
-          color: "rgba(255,255,255,0.5)", fontSize: "12px",
+          color: "rgb(var(--ui-ink-rgb) / max(0.5, var(--ui-text-min-opacity)))", fontSize: "12px",
           fontFamily: "inherit", cursor: "pointer",
           transition: "background 120ms, color 120ms", whiteSpace: "nowrap",
         }}
@@ -78,15 +81,15 @@ function ModelPicker({
       {open && (
         <div style={{
           position: "absolute", right: 0, ...dropPos,
-          minWidth: "180px", background: "rgba(14,16,18,0.98)",
-          border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.6)", overflow: "hidden", zIndex: 100,
+          minWidth: "180px", background: "rgb(var(--ui-tone-0e1012-rgb) / 0.98)",
+          border: "1px solid rgb(var(--ui-ink-rgb) / 0.1)", borderRadius: "12px",
+          boxShadow: "0 8px 32px rgb(var(--ui-shadow-rgb)/calc(0.6*var(--ui-shadow-opacity)))", overflow: "hidden", zIndex: 100,
         }}>
           <div style={{ padding: "4px" }}>
             {MODEL_GROUPS.map((group, gi) => (
               <div key={group.label}>
-                {gi > 0 && <div style={{ height: "1px", background: "rgba(255,255,255,0.07)", margin: "4px 0" }} />}
-                <div style={{ padding: "4px 8px 2px", fontSize: "10px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>
+                {gi > 0 && <div style={{ height: "1px", background: "rgb(var(--ui-ink-rgb) / 0.07)", margin: "4px 0" }} />}
+                <div style={{ padding: "4px 8px 2px", fontSize: "10px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))" }}>
                   {group.label}
                 </div>
                 {group.models.map(m => {
@@ -99,18 +102,18 @@ function ModelPicker({
                       style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                         width: "100%", padding: "7px 8px", borderRadius: "7px", border: "none",
-                        background: model === m.id ? "rgba(45,212,191,0.12)" : "transparent",
-                        color: disabled ? "rgba(255,255,255,0.25)" : model === m.id ? "rgba(94,234,212,0.95)" : "rgba(255,255,255,0.7)",
+                        background: model === m.id ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.12)" : "transparent",
+                        color: disabled ? "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))" : model === m.id ? "rgb(var(--ui-accent-5eead4-rgb) / 0.95)" : "rgb(var(--ui-ink-rgb) / 0.7)",
                         fontSize: "13px", fontFamily: "inherit",
                         cursor: disabled ? "not-allowed" : "pointer",
                         textAlign: "left", transition: "background 100ms",
                         opacity: disabled ? 0.5 : 1,
                       }}
-                      onMouseEnter={e => { if (!disabled && model !== m.id) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.06)"; }}
+                      onMouseEnter={e => { if (!disabled && model !== m.id) (e.currentTarget as HTMLButtonElement).style.background = "rgb(var(--ui-ink-rgb) / 0.06)"; }}
                       onMouseLeave={e => { if (!disabled && model !== m.id) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                     >
                       <span>{m.label}</span>
-                      <span style={{ fontSize: "10px", color: disabled ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.28)", marginLeft: "8px" }}>
+                      <span style={{ fontSize: "10px", color: disabled ? "rgb(var(--ui-ink-rgb) / max(0.18, var(--ui-text-min-opacity)))" : "rgb(var(--ui-ink-rgb) / max(0.28, var(--ui-text-min-opacity)))", marginLeft: "8px" }}>
                         {disabled ? "needs Azure key" : m.desc}
                       </span>
                     </button>
@@ -227,21 +230,22 @@ function LandingView({
         initial={{ filter: "blur(10px)", opacity: 0 }}
         animate={{ filter: "blur(0px)", opacity: 1 }}
         transition={{ duration: 1 }}
-        style={{ color: "rgba(255,255,255,0.4)", fontSize: "15px", marginBottom: "40px", textAlign: "center" }}
+        style={{ color: "rgb(var(--ui-ink-rgb) / max(0.4, var(--ui-text-min-opacity)))", fontSize: "15px", marginBottom: "40px", textAlign: "center" }}
       >
         Give me a prompt and I&apos;ll make it better.
       </motion.p>
 
       {/* Input + suggestions */}
       <div style={{ width: "100%", maxWidth: "680px" }}>
+        <ChatAssets />
         {/* Input bar */}
         <div style={{
           display: "flex", alignItems: "center",
-          background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgb(var(--ui-ink-rgb) / 0.05)",
+          border: "1px solid rgb(var(--ui-ink-rgb) / 0.12)",
           borderRadius: "18px",
           padding: "10px 10px 10px 20px",
-          boxShadow: "0 0 0 1px rgba(255,255,255,0.03) inset",
+          boxShadow: "0 0 0 1px rgb(var(--ui-ink-rgb) / 0.03) inset",
           transition: "border-color 150ms",
         }}>
           <textarea
@@ -253,7 +257,7 @@ function LandingView({
             rows={1}
             style={{
               flex: 1, background: "transparent", border: "none", outline: "none",
-              resize: "none", color: "rgba(255,255,255,0.88)", fontSize: "15px",
+              resize: "none", color: "rgb(var(--ui-ink-rgb) / 0.88)", fontSize: "15px",
               fontFamily: "inherit", lineHeight: "24px", maxHeight: "120px",
               overflowY: "auto", padding: 0,
             }}
@@ -270,8 +274,8 @@ function LandingView({
               disabled={!input.trim() || (model !== "azure-auto" && providerReady === false) || disabledIds.includes(model)}
               style={{
                 width: "36px", height: "36px", borderRadius: "50%", border: "none",
-                background: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)",
-                color: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)",
+                background: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.25)" : "rgb(var(--ui-ink-rgb) / 0.07)",
+                color: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.9)" : "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))",
                 cursor: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, transition: "background 150ms, color 150ms",
@@ -290,14 +294,12 @@ function LandingView({
 
 // ── Chat window ───────────────────────────────────────────────────────────────
 
-interface LiveMessage {
-  role: "user" | "assistant";
-  content: string;
+interface LiveMessage extends StoredMessage {
   streaming?: boolean;
 }
 
 function ChatWindow({
-  session, onUpdate, defaultModel, onModelChange, onAuthRequired, initialMessage,
+  session, onUpdate, defaultModel, onModelChange, onAuthRequired, initialMessage, onInitialConsumed,
 }: {
   session: ChatSession;
   onUpdate: (msgs: StoredMessage[], model: string) => void;
@@ -305,6 +307,7 @@ function ChatWindow({
   onModelChange?: (id: ModelId) => void;
   onAuthRequired?: () => void;
   initialMessage?: string;
+  onInitialConsumed?: () => void;
 }) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<LiveMessage[]>(() =>
@@ -331,16 +334,17 @@ function ChatWindow({
     if (!trimmed || isStreaming) return;
     if (onAuthRequired) { onAuthRequired(); return; }
 
+    const imageUrls = [...useAssetDrafts.getState().chat];
     const contextMessages: StoredMessage[] = [
       ...session.messages,
-      { role: "user", content: trimmed },
+      { role: "user", content: trimmed, ...(imageUrls.length ? { imageUrls } : {}) },
     ];
 
     const assistantIdx = contextMessages.length; // index in the new messages array
     flushSync(() => {
       setMessages((prev) => [
         ...prev.filter((m) => !m.streaming),
-        { role: "user", content: trimmed },
+        { role: "user", content: trimmed, ...(imageUrls.length ? { imageUrls } : {}) },
         { role: "assistant", content: "", streaming: true },
       ]);
       setInput("");
@@ -348,6 +352,7 @@ function ChatWindow({
     });
 
     onUpdate(contextMessages, model);
+    useAssetDrafts.getState().clear("chat");
 
     const abort = new AbortController();
     abortRef.current = abort;
@@ -370,7 +375,7 @@ function ChatWindow({
           model,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
-            ...contextMessages.map((m) => ({ role: m.role, content: m.content })),
+            ...contextMessages.map((m) => ({ role: m.role, content: m.content, ...(m.imageUrls?.length ? { imageUrls: m.imageUrls } : {}) })),
           ],
           stream: true,
           ...azureConfig,
@@ -386,31 +391,9 @@ function ChatWindow({
         return;
       }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
       let accumulated = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split("\n");
-        buf = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const json = line.slice(6).trim();
-          if (json === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(json);
-            const chunk =
-              (parsed.type === "content_block_delta" ? parsed.delta?.text : null) ??
-              parsed.choices?.[0]?.delta?.content ??
-              null;
-            if (chunk) accumulated += chunk;
-          } catch { /* skip malformed SSE */ }
-        }
-        // One state update per network read — the await above yields to the browser for painting
+      for await (const chunk of assistantText(res)) {
+        accumulated += chunk;
         setMessages((prev) => prev.map((m, i) =>
           i === assistantIdx ? { ...m, content: accumulated } : m
         ));
@@ -421,7 +404,7 @@ function ChatWindow({
       onUpdate(finalMessages, model);
     } catch (err: unknown) {
       if ((err as Error)?.name !== "AbortError") {
-        setMessages((prev) => prev.map((m, i) => i === assistantIdx ? { ...m, content: "Request failed.", streaming: false } : m));
+        setMessages((prev) => prev.map((m, i) => i === assistantIdx ? { ...m, content: `Error: ${err instanceof Error ? err.message : "Request failed."}`, streaming: false } : m));
       }
     } finally {
       setIsStreaming(false);
@@ -433,6 +416,7 @@ function ChatWindow({
     if (initialMessage && !hasSentInitial.current) {
       hasSentInitial.current = true;
       send(initialMessage);
+      onInitialConsumed?.();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -448,7 +432,8 @@ function ChatWindow({
         <LogoIcon size={48} />
         <TypewriterHeading text="I'm here to help you make better prompts." />
         <div style={{ width: "100%", maxWidth: "680px" }}>
-          <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "18px", padding: "10px 10px 10px 20px", transition: "border-color 150ms" }}>
+          <ChatAssets />
+          <div style={{ display: "flex", alignItems: "center", background: "rgb(var(--ui-ink-rgb) / 0.05)", border: "1px solid rgb(var(--ui-ink-rgb) / 0.12)", borderRadius: "18px", padding: "10px 10px 10px 20px", transition: "border-color 150ms" }}>
             <textarea
               ref={inputRef}
               value={input}
@@ -456,12 +441,12 @@ function ChatWindow({
               onKeyDown={onKey}
               placeholder="Describe your image or video idea…"
               rows={1}
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", color: "rgba(255,255,255,0.88)", fontSize: "15px", fontFamily: "inherit", lineHeight: "24px", maxHeight: "120px", overflowY: "auto", padding: 0 }}
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", color: "rgb(var(--ui-ink-rgb) / 0.88)", fontSize: "15px", fontFamily: "inherit", lineHeight: "24px", maxHeight: "120px", overflowY: "auto", padding: 0 }}
               onInput={e => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; }}
             />
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "12px", flexShrink: 0 }}>
               <ModelPicker model={model} onChange={handleModelChange} direction="down" disabledIds={disabledIds} />
-              <button onClick={() => send(input)} disabled={!input.trim() || (model !== "azure-auto" && providerReady === false) || disabledIds.includes(model)} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", background: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)", color: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)", cursor: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 150ms, color 150ms" }}>
+              <button onClick={() => send(input)} disabled={!input.trim() || (model !== "azure-auto" && providerReady === false) || disabledIds.includes(model)} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", background: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.25)" : "rgb(var(--ui-ink-rgb) / 0.07)", color: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.9)" : "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))", cursor: input.trim() && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 150ms, color 150ms" }}>
                 <Send size={15} />
               </button>
             </div>
@@ -476,8 +461,8 @@ function ChatWindow({
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
       {/* Header */}
-      <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-        <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "#fff", letterSpacing: "-0.02em" }}>
+      <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid rgb(var(--ui-ink-rgb) / 0.06)", flexShrink: 0 }}>
+        <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "var(--ui-tone-ffffff)", letterSpacing: "-0.02em" }}>
           {session.title}
         </h2>
       </div>
@@ -490,19 +475,20 @@ function ChatWindow({
               <div style={{
                 padding: "10px 14px",
                 borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                background: m.role === "user" ? "rgba(45,212,191,0.15)" : "rgba(255,255,255,0.06)",
-                border: m.role === "user" ? "1px solid rgba(45,212,191,0.25)" : "1px solid rgba(255,255,255,0.07)",
+                background: m.role === "user" ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.15)" : "rgb(var(--ui-ink-rgb) / 0.06)",
+                border: m.role === "user" ? "1px solid rgb(var(--ui-accent-2dd4bf-rgb) / 0.25)" : "1px solid rgb(var(--ui-ink-rgb) / 0.07)",
                 fontSize: "14px", lineHeight: 1.6,
-                color: m.role === "user" ? "#FFFFFF" : "rgba(255,255,255,0.88)",
+                color: m.role === "user" ? "var(--ui-tone-ffffff)" : "rgb(var(--ui-ink-rgb) / 0.88)",
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
               }}>
+                {m.imageUrls?.length ? <div className="mb-2 flex flex-wrap gap-2">{m.imageUrls.map((url) => <a key={url} href={url} target="_blank" rel="noreferrer"><img src={url} alt="对话图片附件" className="max-h-48 max-w-48 rounded-lg object-contain" /></a>)}</div> : null}
                 {m.content}
                 {m.streaming && (
                   m.content
-                    ? <span style={{ display: "inline-block", width: "2px", height: "14px", background: "rgba(255,255,255,0.6)", borderRadius: "1px", marginLeft: "2px", verticalAlign: "text-bottom", animation: "cursorBlink 0.8s ease-in-out infinite" }} />
+                    ? <span style={{ display: "inline-block", width: "2px", height: "14px", background: "rgb(var(--ui-ink-rgb) / 0.6)", borderRadius: "1px", marginLeft: "2px", verticalAlign: "text-bottom", animation: "cursorBlink 0.8s ease-in-out infinite" }} />
                     : <span style={{ display: "inline-flex", gap: "3px", alignItems: "center" }}>
                         {[0, 1, 2].map(d => (
-                          <span key={d} style={{ width: "4px", height: "4px", borderRadius: "50%", background: "rgba(255,255,255,0.4)", animation: `chatDot 1s ${d * 0.2}s infinite` }} />
+                          <span key={d} style={{ width: "4px", height: "4px", borderRadius: "50%", background: "rgb(var(--ui-ink-rgb) / 0.4)", animation: `chatDot 1s ${d * 0.2}s infinite` }} />
                         ))}
                       </span>
                 )}
@@ -519,12 +505,12 @@ function ChatWindow({
                     marginTop: "4px",
                     display: "flex", alignItems: "center", gap: "4px",
                     padding: "3px 8px", borderRadius: "6px", border: "none",
-                    background: "transparent", color: copiedIdx === i ? "rgba(45,212,191,0.8)" : "rgba(255,255,255,0.25)",
+                    background: "transparent", color: copiedIdx === i ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.8)" : "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))",
                     fontSize: "11px", fontFamily: "inherit", cursor: "pointer",
                     transition: "color 150ms, background 150ms",
                   }}
-                  onMouseEnter={e => { if (copiedIdx !== i) (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.06)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = copiedIdx === i ? "rgba(45,212,191,0.8)" : "rgba(255,255,255,0.25)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                  onMouseEnter={e => { if (copiedIdx !== i) (e.currentTarget as HTMLButtonElement).style.color = "rgb(var(--ui-ink-rgb) / 0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "rgb(var(--ui-ink-rgb) / 0.06)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = copiedIdx === i ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.8)" : "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                 >
                   {copiedIdx === i ? <Check size={11} /> : <Copy size={11} />}
                   {copiedIdx === i ? "Copied" : "Copy"}
@@ -536,11 +522,12 @@ function ChatWindow({
       </div>
 
       {/* Input bar */}
-      <div style={{ padding: "16px", borderTop: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+      <div style={{ padding: "16px", borderTop: "1px solid rgb(var(--ui-ink-rgb) / 0.06)", flexShrink: 0 }}>
+        <ChatAssets disabled={isStreaming} />
         <div style={{
           display: "flex", alignItems: "center",
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          background: "rgb(var(--ui-ink-rgb) / 0.04)",
+          border: "1px solid rgb(var(--ui-ink-rgb) / 0.1)",
           borderRadius: "12px",
           padding: "8px 8px 8px 14px",
           transition: "border-color 150ms",
@@ -555,7 +542,7 @@ function ChatWindow({
             disabled={isStreaming}
             style={{
               flex: 1, background: "transparent", border: "none", outline: "none",
-              resize: "none", color: "rgba(255,255,255,0.88)", fontSize: "14px",
+              resize: "none", color: "rgb(var(--ui-ink-rgb) / 0.88)", fontSize: "14px",
               fontFamily: "inherit", lineHeight: "22px", maxHeight: "120px",
               overflowY: "auto", padding: 0,
             }}
@@ -572,8 +559,8 @@ function ChatWindow({
               disabled={!input.trim() || isStreaming || (model !== "azure-auto" && providerReady === false) || disabledIds.includes(model)}
               style={{
                 width: "32px", height: "32px", borderRadius: "8px", border: "none",
-                background: input.trim() && !isStreaming && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.25)" : "rgba(255,255,255,0.07)",
-                color: input.trim() && !isStreaming && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgba(45,212,191,0.9)" : "rgba(255,255,255,0.25)",
+                background: input.trim() && !isStreaming && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.25)" : "rgb(var(--ui-ink-rgb) / 0.07)",
+                color: input.trim() && !isStreaming && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "rgb(var(--ui-accent-2dd4bf-rgb) / 0.9)" : "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))",
                 cursor: input.trim() && !isStreaming && (model === "azure-auto" || providerReady !== false) && !disabledIds.includes(model) ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, transition: "background 150ms, color 150ms",
@@ -630,7 +617,7 @@ function ChatInner() {
 
   if (!hydrated) {
     return (
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.3)", fontSize: "14px" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--ui-ink-rgb) / max(0.3, var(--ui-text-min-opacity)))", fontSize: "14px" }}>
         Loading…
       </div>
     );
@@ -646,6 +633,7 @@ function ChatInner() {
           defaultModel={preferredModel}
           onModelChange={setPreferredModel}
           initialMessage={pendingMessage || undefined}
+          onInitialConsumed={() => setPendingMessage("")}
         />
       ) : (
         <LandingView

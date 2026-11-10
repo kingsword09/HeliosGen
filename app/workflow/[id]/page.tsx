@@ -19,18 +19,21 @@ export default function WorkflowPage({
   const router = useRouter();
   const switchSpace = useWorkflowStore((s) => s.switchSpace);
 
-  useSpaceSync();
+  const { ready, status } = useSpaceSync();
 
   // Guard: if this ID doesn't exist in the store, redirect home.
   // Also ensures the correct space is active on direct URL access.
   useEffect(() => {
+    if (!ready) return;
     const spaces = useWorkflowStore.getState().spaces;
     if (!spaces.some((sp) => sp.id === id)) {
       router.replace("/");
       return;
     }
     switchSpace(id);
-  }, [id, switchSpace, router]);
+  }, [id, switchSpace, router, ready]);
+
+  if (!ready) return <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground"><p>{status === "error" ? "无法读取工作流，未修改已有数据。" : "正在加载工作流…"}</p>{status === "error" && <button className="underline" onClick={() => window.location.reload()}>重新加载</button>}</div>;
 
   return (
     <div className="flex-1 flex overflow-hidden min-h-0">

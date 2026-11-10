@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 
 const GAP = 22;
 
 export default function WorkflowDotBackground() {
+  const { resolvedTheme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function WorkflowDotBackground() {
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = "rgba(255,255,255,0.2)";
+      ctx.fillStyle = resolvedTheme === "light" ? "rgba(31,41,55,0.18)" : "rgba(255,255,255,0.2)";
 
       for (let x = GAP; x < w; x += GAP) {
         for (let y = GAP; y < h; y += GAP) {
@@ -37,7 +39,7 @@ export default function WorkflowDotBackground() {
     const observer = new ResizeObserver(draw);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, []);
+  }, [resolvedTheme]);
 
   return (
     <div className="pointer-events-none absolute inset-0" style={{ zIndex: 0 }}>

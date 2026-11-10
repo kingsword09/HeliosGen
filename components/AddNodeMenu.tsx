@@ -260,7 +260,7 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
     gap: "12px",
     width: "100%",
     padding: "9px 14px",
-    background: isHovered ? "rgba(255,255,255,0.05)" : "transparent",
+    background: isHovered ? "rgb(var(--ui-ink-rgb) / 0.05)" : "transparent",
     border: "none",
     cursor: "pointer",
     textAlign: "left" as const,
@@ -286,22 +286,22 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
         <span style={{
           flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
           width: "34px", height: "34px", borderRadius: "9px",
-          background: meta?.bg ?? "rgba(255,255,255,0.06)",
-          color: meta?.accent ?? "#aaa",
-          border: `1px solid ${meta?.accent ?? "#333"}28`,
+          background: meta?.bg ?? "rgb(var(--ui-ink-rgb) / 0.06)",
+          color: meta?.accent ?? "var(--ui-text-tone-aaaaaa)",
+          border: `1px solid color-mix(in srgb, ${meta?.accent ?? "var(--ui-tone-333333)"} 16%, transparent)`,
         }}>
           {meta?.bigIcon ?? node.icon}
         </span>
         <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
-          <span style={{ fontSize: "13px", fontWeight: 500, color: isHovered ? "#fff" : "rgba(255,255,255,0.82)", lineHeight: 1.2, transition: "color 120ms ease" }}>
+          <span style={{ fontSize: "13px", fontWeight: 500, color: isHovered ? "var(--ui-tone-ffffff)" : "rgb(var(--ui-ink-rgb) / 0.82)", lineHeight: 1.2, transition: "color 120ms ease" }}>
             {node.label}
           </span>
-          <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: "11px", color: "rgb(var(--ui-ink-rgb) / max(0.3, var(--ui-text-min-opacity)))", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {node.description}
           </span>
         </span>
         {isHovered && (
-          <span style={{ marginLeft: "auto", flexShrink: 0, fontSize: "10px", color: "rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "2px 5px", fontFamily: "monospace" }}>
+          <span style={{ marginLeft: "auto", flexShrink: 0, fontSize: "10px", color: "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))", background: "rgb(var(--ui-ink-rgb) / 0.06)", border: "1px solid rgb(var(--ui-ink-rgb) / 0.1)", borderRadius: "4px", padding: "2px 5px", fontFamily: "monospace" }}>
             ↵
           </span>
         )}
@@ -338,15 +338,15 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
           flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
           width: "34px", height: "34px", borderRadius: "9px",
           background: bg, color: accent,
-          border: `1px solid ${accent}28`,
+          border: `1px solid color-mix(in srgb, ${accent} 16%, transparent)`,
         }}>
           {icon}
         </span>
         <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
-          <span style={{ fontSize: "13px", fontWeight: 500, color: isHovered ? "#fff" : "rgba(255,255,255,0.82)", lineHeight: 1.2, transition: "color 120ms ease" }}>
+          <span style={{ fontSize: "13px", fontWeight: 500, color: isHovered ? "var(--ui-tone-ffffff)" : "rgb(var(--ui-ink-rgb) / 0.82)", lineHeight: 1.2, transition: "color 120ms ease" }}>
             {label}
           </span>
-          <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: "11px", color: "rgb(var(--ui-ink-rgb) / max(0.3, var(--ui-text-min-opacity)))", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {description}
           </span>
         </span>
@@ -372,10 +372,10 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
         style={{
           position: "fixed", left, top, width: MENU_W, maxHeight: MENU_MAX_H, zIndex: 99999,
           display: "flex", flexDirection: "column",
-          background: "rgba(10,11,13,0.98)",
+          background: "rgb(var(--ui-tone-0a0b0d-rgb) / 0.98)",
           backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-          border: "1px solid rgba(255,255,255,0.09)", borderRadius: "16px",
-          boxShadow: "0 0 0 1px rgba(255,255,255,0.04) inset, 0 28px 70px rgba(0,0,0,0.8), 0 4px 20px rgba(0,0,0,0.5)",
+          border: "1px solid rgb(var(--ui-ink-rgb) / 0.09)", borderRadius: "16px",
+          boxShadow: "0 0 0 1px rgb(var(--ui-ink-rgb) / 0.04) inset, 0 28px 70px rgb(var(--ui-shadow-rgb)/calc(0.8*var(--ui-shadow-opacity))), 0 4px 20px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)))",
           overflow: "hidden",
           animation: "addMenuIn 160ms cubic-bezier(0.22,1,0.36,1) both",
         }}
@@ -388,18 +388,18 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
         `}</style>
 
         {/* Search bar */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <Search size={14} color="rgba(255,255,255,0.3)" />
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderBottom: "1px solid rgb(var(--ui-ink-rgb) / 0.06)" }}>
+          <Search size={14} color="rgb(var(--ui-ink-rgb) / max(0.3, var(--ui-text-min-opacity)))" />
           <input
             ref={searchRef}
             id="add-node-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search nodes…"
-            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "rgba(255,255,255,0.82)", fontSize: "13px", caretColor: "#2DD4BF" }}
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "rgb(var(--ui-ink-rgb) / 0.82)", fontSize: "13px", caretColor: "var(--ui-accent-2dd4bf)" }}
           />
           {query && (
-            <button onClick={() => setQuery("")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", padding: 0, lineHeight: 1 }}>
+            <button onClick={() => setQuery("")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgb(var(--ui-ink-rgb) / max(0.3, var(--ui-text-min-opacity)))", padding: 0, lineHeight: 1 }}>
               <X size={14} />
             </button>
           )}
@@ -409,7 +409,7 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
         <div style={{ overflowY: "auto", flex: 1, padding: "8px" }}>
           {filtered ? (
             filtered.length === 0 ? (
-              <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "24px 0" }}>
+              <p style={{ fontSize: "12px", color: "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))", textAlign: "center", padding: "24px 0" }}>
                 No nodes match &ldquo;{query}&rdquo;
               </p>
             ) : (
@@ -418,7 +418,7 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
           ) : (
             SECTIONS.map((section) => (
               <div key={section.id} style={{ marginBottom: "4px" }}>
-                <p style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.08em", color: "rgba(255,255,255,0.25)", padding: "8px 14px 4px", margin: 0 }}>
+                <p style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.08em", color: "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))", padding: "8px 14px 4px", margin: 0 }}>
                   {section.label}
                 </p>
                 {section.nodeTypes.map((t) => <NodeRow key={t} nodeType={t} />)}
@@ -429,7 +429,7 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
                       label="Upload"
                       description="Image or video — auto-detects type"
                       accent="#34d399"
-                      bg="#052e16"
+                      bg="var(--ui-tone-052e16)"
                       icon={<Upload size={18} strokeWidth={1.8} />}
                       onClick={() => fileInputRef.current?.click()}
                     />
@@ -437,8 +437,8 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
                       id="assets"
                       label="Assets"
                       description="Browse your generations & uploads"
-                      accent="#60a5fa"
-                      bg="#0c1a3b"
+                      accent="var(--ui-accent-60a5fa)"
+                      bg="var(--ui-tone-0c1a3b)"
                       icon={<LayoutGrid size={18} strokeWidth={1.8} />}
                       onClick={(e) => {
                         setPickerPos({ x: e.clientX, y: e.clientY });
@@ -453,7 +453,7 @@ export default function AddNodeMenu({ anchorRect, onClose }: AddNodeMenuProps) {
         </div>
 
         {/* Bottom hint bar */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 14px", borderTop: "1px solid rgba(255,255,255,0.06)", fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 14px", borderTop: "1px solid rgb(var(--ui-ink-rgb) / 0.06)", fontSize: "11px", color: "rgb(var(--ui-ink-rgb) / max(0.25, var(--ui-text-min-opacity)))" }}>
           <span><kbd style={{ fontFamily: "monospace", opacity: 0.7 }}>↑↓</kbd> Navigate</span>
           <span><kbd style={{ fontFamily: "monospace", opacity: 0.7 }}>↵</kbd> Insert</span>
           <span style={{ marginLeft: "auto" }}><kbd style={{ fontFamily: "monospace", opacity: 0.7 }}>Esc</kbd> Close</span>

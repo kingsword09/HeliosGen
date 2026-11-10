@@ -190,9 +190,9 @@ function ChangelogModal({ info, onClose }: { info: UpdateInfo; onClose: () => vo
           display: "flex",
           flexDirection: "column",
           borderRadius: "16px",
-          background: "rgba(10,11,14,0.98)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.8), 0 4px 20px rgba(0,0,0,0.5)",
+          background: "rgb(var(--ui-tone-0a0b0e-rgb) / 0.98)",
+          border: "1px solid rgb(var(--ui-ink-rgb) / 0.08)",
+          boxShadow: "0 32px 80px rgb(var(--ui-shadow-rgb)/calc(0.8*var(--ui-shadow-opacity))), 0 4px 20px rgb(var(--ui-shadow-rgb)/calc(0.5*var(--ui-shadow-opacity)))",
           overflow: "hidden",
         }}
       >
@@ -203,7 +203,7 @@ function ChangelogModal({ info, onClose }: { info: UpdateInfo; onClose: () => vo
             alignItems: "center",
             gap: "10px",
             padding: "18px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            borderBottom: "1px solid rgb(var(--ui-ink-rgb) / 0.07)",
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={`rgba(${AMBER},0.95)`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -212,10 +212,10 @@ function ChangelogModal({ info, onClose }: { info: UpdateInfo; onClose: () => vo
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: "rgba(255,255,255,0.95)" }}>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: "rgb(var(--ui-ink-rgb) / 0.95)" }}>
               {info.name || "Update available"}
             </div>
-            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", marginTop: "2px" }}>
+            <div style={{ fontSize: "11px", color: "rgb(var(--ui-ink-rgb) / max(0.45, var(--ui-text-min-opacity)))", marginTop: "2px" }}>
               {info.currentVersion} → {info.latestVersion}
               {info.publishedAt ? ` · ${new Date(info.publishedAt).toLocaleDateString()}` : ""}
             </div>
@@ -232,11 +232,11 @@ function ChangelogModal({ info, onClose }: { info: UpdateInfo; onClose: () => vo
               borderRadius: "7px",
               border: "none",
               background: "transparent",
-              color: "rgba(255,255,255,0.5)",
+              color: "rgb(var(--ui-ink-rgb) / max(0.5, var(--ui-text-min-opacity)))",
               cursor: "pointer",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.background = "rgb(var(--ui-ink-rgb) / 0.08)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent";
@@ -261,7 +261,7 @@ function ChangelogModal({ info, onClose }: { info: UpdateInfo; onClose: () => vo
             justifyContent: "flex-end",
             gap: "8px",
             padding: "14px 20px",
-            borderTop: "1px solid rgba(255,255,255,0.07)",
+            borderTop: "1px solid rgb(var(--ui-ink-rgb) / 0.07)",
           }}
         >
           <button
@@ -271,9 +271,9 @@ function ChangelogModal({ info, onClose }: { info: UpdateInfo; onClose: () => vo
               fontWeight: 500,
               padding: "7px 14px",
               borderRadius: "8px",
-              border: "1px solid rgba(255,255,255,0.12)",
+              border: "1px solid rgb(var(--ui-ink-rgb) / 0.12)",
               background: "transparent",
-              color: "rgba(255,255,255,0.7)",
+              color: "rgb(var(--ui-ink-rgb) / 0.7)",
               cursor: "pointer",
             }}
           >
@@ -309,13 +309,13 @@ function ChangelogModal({ info, onClose }: { info: UpdateInfo; onClose: () => vo
 function Notes({ text }: { text: string }) {
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   return (
-    <div style={{ fontSize: "12.5px", lineHeight: 1.6, color: "rgba(255,255,255,0.8)" }}>
+    <div style={{ fontSize: "12.5px", lineHeight: 1.6, color: "rgb(var(--ui-ink-rgb) / 0.8)" }}>
       {lines.map((raw, i) => {
         const line = raw.replace(/\*\*(.+?)\*\*/g, "$1").replace(/`(.+?)`/g, "$1");
         const heading = line.match(/^#{1,6}\s+(.*)/);
         if (heading) {
           return (
-            <div key={i} style={{ fontWeight: 600, color: "rgba(255,255,255,0.95)", margin: i ? "12px 0 4px" : "0 0 4px" }}>
+            <div key={i} style={{ fontWeight: 600, color: "rgb(var(--ui-ink-rgb) / 0.95)", margin: i ? "12px 0 4px" : "0 0 4px" }}>
               {heading[1]}
             </div>
           );

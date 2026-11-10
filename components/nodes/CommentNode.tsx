@@ -6,7 +6,7 @@ import { useReadOnly } from "@/lib/readOnlyContext";
 
 type CommentNodeType = Node<NodeData, "commentNode">;
 
-const ACCENT = "#FACC15"; // amber-400
+const ACCENT = "var(--note-accent)";
 
 export default function CommentNode({ id, data, selected }: NodeProps<CommentNodeType>) {
   const readOnly = useReadOnly();
@@ -23,8 +23,8 @@ export default function CommentNode({ id, data, selected }: NodeProps<CommentNod
     <div
       className="w-full h-full flex flex-col rounded-lg overflow-hidden shadow-lg"
       style={{
-        background: "rgba(250, 204, 21, 0.09)",
-        border: `1px solid ${ACCENT}44`,
+        background: "rgb(var(--ui-accent-facc15-rgb) / 0.09)",
+        border: "1px solid var(--note-border)",
         backdropFilter: "blur(2px)",
       }}
     >
@@ -40,11 +40,11 @@ export default function CommentNode({ id, data, selected }: NodeProps<CommentNod
       <div
         className="flex items-center justify-between gap-2 px-2.5 py-1.5 select-none"
         style={{
-          borderBottom: `1px solid ${ACCENT}22`,
-          background: "rgba(250, 204, 21, 0.07)",
+          borderBottom: "1px solid var(--note-border)",
+          background: "rgb(var(--ui-accent-facc15-rgb) / 0.07)",
         }}
       >
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: `${ACCENT}dd` }}>
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: ACCENT }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
@@ -56,9 +56,9 @@ export default function CommentNode({ id, data, selected }: NodeProps<CommentNod
             onClick={(e) => { e.stopPropagation(); handleDelete(); }}
             title="Delete comment"
             className="nodrag flex items-center justify-center w-5 h-5 rounded transition-colors"
-            style={{ color: `${ACCENT}99` }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = `${ACCENT}99`; e.currentTarget.style.background = "transparent"; }}
+            style={{ color: ACCENT }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--ui-accent-f87171)"; e.currentTarget.style.background = "rgb(var(--ui-accent-f87171-rgb) / 0.12)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = ACCENT; e.currentTarget.style.background = "transparent"; }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6" />
@@ -73,9 +73,9 @@ export default function CommentNode({ id, data, selected }: NodeProps<CommentNod
       {/* Text input — editable only while the node is selected, so an unselected
           note can be dragged from anywhere on its body. */}
       <textarea
-        className="nodrag nowheel flex-1 w-full bg-transparent text-[13px] leading-relaxed p-2.5 resize-none focus:outline-none placeholder:text-yellow-200/35"
+        className="nodrag nowheel flex-1 w-full bg-transparent text-[13px] leading-relaxed p-2.5 resize-none focus:outline-none placeholder:text-note-muted"
         style={{
-          color: "#FEF9C3",
+          color: "var(--note-foreground)",
           pointerEvents: editable ? "auto" : "none",
         }}
         placeholder="Write a comment…"
